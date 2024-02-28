@@ -14,6 +14,9 @@ const int motorRightBack =  9;   // Motor pin B2
 
 const int gripper = 6; // gripper GR
 
+const int triggerPin = 2; // HC-SR04 trigger pin
+const int echoPin = 4;    // HC-SR04 echo pin
+
 float leftOffsetPercentage = 1;      
 float rightOffsetPercentage = 3; 
 
@@ -80,12 +83,27 @@ void setup() {
   pinMode(motorLeftBack,  OUTPUT);
   pinMode(motorRightBack, OUTPUT);
   pinMode(motorRightFwd,  OUTPUT);
+  pinMode(triggerPin, OUTPUT);
+  pinMode(echoPin, INPUT);
   pinMode(gripper, OUTPUT);
   Serial.begin(9600);
 }
 
 void loop() {
-    openGripper();
-    delay(1000);
-    closeGripper();
+  // Measure distance
+  long duration, distance;
+  digitalWrite(triggerPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(triggerPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(triggerPin, LOW);
+  duration = pulseIn(echoPin, HIGH);
+  distance = duration * 0.034 / 2;
+// Check for obstacles
+  if (distance <= stopDistance) {
+    Serial.println("Obstacle detected");
+  } else {
+    // Move forward if no obstacle
+      Serial.println("No obstacle detected");
+  }
 }
