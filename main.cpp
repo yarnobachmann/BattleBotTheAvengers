@@ -12,6 +12,8 @@ const int motorLeftFwd =    11;  // Motor pin A2
 const int motorRightFwd =   10;  // Motor pin B1
 const int motorRightBack =  9;   // Motor pin B2
 
+const int gripper = 6; // gripper GR
+
 float leftOffsetPercentage = 1;      
 float rightOffsetPercentage = 3; 
 
@@ -45,6 +47,31 @@ void driveForward(int speed){
   lightForward(); // Turn on forward lights
 }
 
+void setGripperAngle(int angle) {
+  // Convert the angle to the corresponding PWM signal
+  int pwmValue = map(angle, 0, 180, 544, 2400);
+
+  // Send the PWM signal to the servo
+  digitalWrite(gripper, HIGH);
+  delayMicroseconds(pwmValue);
+  digitalWrite(gripper, LOW);
+}
+
+// Function to open the gripper (move the servo to the open position)
+void openGripper() {
+  // Adjust the angle value based on your servo's specifications
+  int openAngle = 90; 
+  setGripperAngle(openAngle);
+}
+
+// Function to close the gripper (move the servo to the closed position)
+void closeGripper() {
+  // Adjust the angle value based on your servo's specifications
+  int closeAngle = 0;
+  setGripperAngle(closeAngle);
+}
+
+
 void setup() {
   strip.begin();  // Initialize the Neopixel strip
   strip.show();   // Initialize all pixels to 'off'
@@ -53,9 +80,12 @@ void setup() {
   pinMode(motorLeftBack,  OUTPUT);
   pinMode(motorRightBack, OUTPUT);
   pinMode(motorRightFwd,  OUTPUT);
+  pinMode(gripper, OUTPUT);
   Serial.begin(9600);
 }
 
 void loop() {
-    driveForward(255);
+    openGripper();
+    delay(1000);
+    closeGripper();
 }
