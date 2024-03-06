@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 #ifdef __AVR__
   #include <avr/power.h>
@@ -21,10 +22,12 @@ const int echoPin = 4;    // HC-SR04 echo pin
 const int motorLeftRead =   8;   // Arduino A0
 const int motorRightRead =  7;   // Arduino A1
 
-const int stopDistance = 10; // Distance threshold to stop the robot (in cm)
+const int numberOfSensors = 8; // Number of sensors used
+int sensorPins[numberOfSensors] = {A0, A1, A2, A3, A4, A5, A6, A7}; // Analog pins for the sensors
+int sensorValues[numberOfSensors]; // Array to store the sensor values
 
-float leftOffsetPercentage = 1;      
-float rightOffsetPercentage = 3;  
+
+const int stopDistance = 10; // Distance threshold to stop the robot (in cm)
 
 int pulseAvgLeft;
 int pulseAvgRight;
@@ -60,7 +63,7 @@ void setGripperAngle(int angle) {
 // Function to open the gripper (move the servo to the open position)
 void openGripper() {
   // Adjust the angle value based on your servo's specifications
-  int openAngle = 90; 
+  int openAngle = 90;
   setGripperAngle(openAngle);
 }
 
@@ -90,11 +93,11 @@ void calibrateServo() {
 }
 
 // Sets motor power to input
-void setMotors(int LFWD, int LBACK, int RFWD, int RBACK){
-  analogWrite(motorLeftFwd,   LFWD * rightOffsetPercentage);
-  analogWrite(motorLeftBack,  LBACK * rightOffsetPercentage);
-  analogWrite(motorRightFwd,  RFWD * leftOffsetPercentage);
-  analogWrite(motorRightBack, RBACK * leftOffsetPercentage);
+void setMotors(int LFWD, int LBACK, int RFWD, int RBACK) {
+  analogWrite(motorLeftFwd,   LFWD);
+  analogWrite(motorLeftBack,  LBACK);
+  analogWrite(motorRightFwd,  RFWD);
+  analogWrite(motorRightBack, RBACK);
 }
 
 void brakeLight() {
@@ -130,25 +133,25 @@ void rightLight() {
 }
 
 // Rotate left at 0-255 speed
-void driveLeft(int speed){
+void driveLeft(int speed) {
   leftLight();
   setMotors(0, speed, speed, 0);
 }
 
 // Rotate right at 0-255 speed
-void driveRight(int speed){
+void driveRight(int speed) {
   rightLight();
   setMotors(speed, 0 , 0, speed);
 }
 
 // Drive forwards at 0-255 speed
-void driveForward(int speed){
+void driveForward(int speed) {
   setMotors(speed, 0 , speed, 0);
   lightForward(); // Turn on forward lights
 }
 
 // Drive backwards at 0-255 speed
-void driveBack(int speed){
+void driveBack(int speed) {
   setMotors(0, speed, 0, speed);
 }
 
@@ -169,9 +172,9 @@ void lookLeft() {
   // Adjust the angle value based on your servo's specifications
   int angle = 180;
   setServoAngle(angle);
-  
+
   // Add a delay to give some time for the servo to move (you may need to adjust the delay duration)
-  delay(1000);
+  delay(800);
 
    // Measure distance
   long duration, distance;
@@ -187,9 +190,9 @@ void lookLeft() {
   if (distance <= stopDistance) {
     lookstraight();
   } else {
-    driveLeft(200);
+    driveLeft(180);
     lookstraight();
-  }  
+  }
 }
 
 // Function to close the gripper (move the servo to the closed position)
@@ -198,7 +201,7 @@ void lookRight() {
   int angle = 0;
   setServoAngle(angle);
 
-  delay(1000);
+  delay(800);
 
    // Measure distance
   long duration, distance;
@@ -214,7 +217,7 @@ void lookRight() {
   if (distance <= stopDistance) {
     lookLeft();
   } else {
-    driveRight(200);
+    driveRight(180);
     lookstraight();
   }
 }
