@@ -4,6 +4,28 @@
   #include <avr/power.h>
 #endif
 
+// Function pre decleration
+void setPixelColor(int pixel, uint8_t red, uint8_t green, uint8_t blue);
+void setServoAngle(int angle);
+void setGripperAngle(int angle);
+void openGripper();
+void closeGripper();
+void calibrateServo();
+void setMotors(int LFWD, int LBACK, int RFWD, int RBACK);
+void brakeLight();
+void forwardLight();
+void leftLight();
+void rightLight();
+void driveLeft(int speed);
+void driveRight(int speed);
+void driveForward(int speed);
+void driveBack(int speed);
+void driveStop();
+void lookStraight();
+void lookLeft();
+void lookRight();
+long measureDistance();
+
 #define PIN            13    // Digital pin connected to the Neopixel
 #define NUMPIXELS      4    // Number of Neopixels in your strip
 
@@ -29,10 +51,58 @@ int sensorValues[numberOfSensors]; // Array to store the sensor values
 
 const int stopDistance = 10; // Distance threshold to stop the robot (in cm)
 
-int pulseAvgLeft;
-int pulseAvgRight;
-
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+
+void setup() {
+  strip.begin();  // Initialize the Neopixel strip
+  strip.show();   // Initialize all pixels to 'off'
+
+  pinMode(motorLeftFwd,   OUTPUT);
+  pinMode(motorLeftBack,  OUTPUT);
+  pinMode(motorRightBack, OUTPUT);
+  pinMode(motorRightFwd,  OUTPUT);
+  pinMode(motorLeftRead,  INPUT);
+  pinMode(motorRightRead, INPUT);
+  pinMode(triggerPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  pinMode(servo, OUTPUT);
+  pinMode(gripper, OUTPUT);
+  Serial.begin(9600);
+   // Calibrate the servo to a known initial position
+  calibrateServo();
+}
+
+void loop() {
+  // Measure distance
+   long distance = measureDistance();
+
+  // Check for obstacles
+  if (distance <= stopDistance) {
+    driveStop();
+    Serial.println("Obstacle detected");
+
+    // Look left
+    lookRight();
+    delay(1000);
+
+    // Measure distance again after looking left
+    distance = measureDistance();
+
+    // If there is still an obstacle on the left, look right and drive right
+    if (distance <= stopDistance) {
+      lookLeft();
+      delay(1000);
+  } else {
+    // Move forward if no obstacle
+    driveForward(255);
+    Serial.println("No obstacle detected");
+  }
+  } else {
+    // Move forward if no obstacle
+      driveForward(255);
+      Serial.println("No obstacle detected");
+  }
+}
 
 // Set color for a specific Neopixel
 void setPixelColor(int pixel, uint8_t red, uint8_t green, uint8_t blue) {
@@ -108,7 +178,7 @@ void brakeLight() {
   setPixelColor(3, 0, 0, 0);    // Turn off other Neopixels
 }
 
-void lightForward() {
+void forwardLight() {
   // Set color for each Neopixel individually
   setPixelColor(0, 0, 0, 0);  // Turn off other Neopixels
   setPixelColor(1, 0, 0, 0);  // Turn off other Neopixels
@@ -120,7 +190,7 @@ void leftLight() {
   // Set color for each Neopixel individually
   setPixelColor(0, 0, 0, 0);  // Turn off other Neopixels
   setPixelColor(1, 0, 0, 0);  // Turn off other Neopixels
-  setPixelColor(2, 0, 0, 0);    // Turn off other Neopixels
+  setPixelColor(2, 255, 0, 0);    // Turn off other Neopixels
   setPixelColor(3, 80, 255, 0);    // Orange for the 4th Neopixel
 }
 
@@ -129,7 +199,7 @@ void rightLight() {
   setPixelColor(0, 0, 0, 0);  // Turn off other Neopixels
   setPixelColor(1, 0, 0, 0);  // Turn off other Neopixels
   setPixelColor(2, 80, 255, 0);    // Orange for the 3th Neopixel
-  setPixelColor(3, 0, 0, 0);    // Turn off other Neopixels
+  setPixelColor(3, 255, 0, 0);    // Turn off other Neopixels
 }
 
 // Rotate left at 0-255 speed
@@ -147,7 +217,7 @@ void driveRight(int speed) {
 // Drive forwards at 0-255 speed
 void driveForward(int speed) {
   setMotors(speed, 0 , speed, 0);
-  lightForward(); // Turn on forward lights
+  forwardLight(); // Turn on forward lights
 }
 
 // Drive backwards at 0-255 speed
@@ -162,7 +232,7 @@ void driveStop(){
 }
 
 // Function to close the gripper (move the servo to the closed position)
-void lookstraight() {
+void lookStraight() {
   // Adjust the angle value based on your servo's specifications
   int angle = 75;
   setServoAngle(angle);
@@ -177,21 +247,14 @@ void lookLeft() {
   delay(800);
 
    // Measure distance
-  long duration, distance;
-  digitalWrite(triggerPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(triggerPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(triggerPin, LOW);
-  duration = pulseIn(echoPin, HIGH);
-  distance = duration * 0.034 / 2;
+   long distance = measureDistance();
 
   // Check for obstacles
   if (distance <= stopDistance) {
-    lookstraight();
+    lookStraight();
   } else {
     driveLeft(180);
-    lookstraight();
+    lookStraight();
   }
 }
 
@@ -204,45 +267,19 @@ void lookRight() {
   delay(800);
 
    // Measure distance
-  long duration, distance;
-  digitalWrite(triggerPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(triggerPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(triggerPin, LOW);
-  duration = pulseIn(echoPin, HIGH);
-  distance = duration * 0.034 / 2;
+   long distance = measureDistance();
 
   // Check for obstacles
   if (distance <= stopDistance) {
     lookLeft();
   } else {
     driveRight(180);
-    lookstraight();
+    lookStraight();
   }
 }
 
-void setup() {
-  strip.begin();  // Initialize the Neopixel strip
-  strip.show();   // Initialize all pixels to 'off'
-
-  pinMode(motorLeftFwd,   OUTPUT);
-  pinMode(motorLeftBack,  OUTPUT);
-  pinMode(motorRightBack, OUTPUT);
-  pinMode(motorRightFwd,  OUTPUT);
-  pinMode(motorLeftRead,  INPUT);
-  pinMode(motorRightRead, INPUT);
-  pinMode(triggerPin, OUTPUT);
-  pinMode(echoPin, INPUT);
-  pinMode(servo, OUTPUT);
-  pinMode(gripper, OUTPUT);
-  Serial.begin(9600);
-   // Calibrate the servo to a known initial position
-  calibrateServo();
-}
-
-void loop() {
-  // Measure distance
+long measureDistance()
+{
   long duration, distance;
   digitalWrite(triggerPin, LOW);
   delayMicroseconds(2);
@@ -251,37 +288,5 @@ void loop() {
   digitalWrite(triggerPin, LOW);
   duration = pulseIn(echoPin, HIGH);
   distance = duration * 0.034 / 2;
-
-  // Check for obstacles
-  if (distance <= stopDistance) {
-    driveStop();
-    Serial.println("Obstacle detected");
-
-    // Look left
-    lookRight();
-    delay(1000);
-
-    // Measure distance again after looking left
-    digitalWrite(triggerPin, LOW);
-    delayMicroseconds(2);
-    digitalWrite(triggerPin, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(triggerPin, LOW);
-    duration = pulseIn(echoPin, HIGH);
-    distance = duration * 0.034 / 2;
-
-    // If there is still an obstacle on the left, look right and drive right
-    if (distance <= stopDistance) {
-      lookLeft();
-      delay(1000);
-  } else {
-    // Move forward if no obstacle
-    driveForward(255);
-    Serial.println("No obstacle detected");
-  }
-  } else {
-    // Move forward if no obstacle
-      driveForward(255);
-      Serial.println("No obstacle detected");
-  }
+  return distance;
 }
