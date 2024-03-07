@@ -52,7 +52,7 @@ const int motorLeftRead =   2;   // Arduino A0
 const int motorRightRead =  3;   // Arduino A1
 
 const int numberOfSensors = 8; // Number of sensors used
-int sensorPins[numberOfSensors] = {A0, A1, A2, A3, A4, A5, A6, A7}; // Analog pins for the sensors
+int sensorPins[numberOfSensors] = {A7 ,A6, A5, A4, A3, A2, A1, A0}; // Analog pins for the sensors
 int sensorValues[numberOfSensors]; // Array to store the sensor values
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
