@@ -106,44 +106,10 @@ void setup() {
 //-----------------------------------[Loop function]----------------------------
 
 void loop() {
-  // Measure distance
-  long distance = measureDistance();
-  // Read reflection sensor values
-  for (int i = 0; i < numberOfSensors; i++) {
-    sensorValues[i] = analogRead(sensorPins[i]);
-  }
-  // Print reflection sensor values to Serial Monitor
-  Serial.print("Reflection Sensor Values: ");
-  for (int i = 0; i < numberOfSensors; i++) {
-    Serial.print(sensorValues[i]);
-    Serial.print(" ");
-  }
-  Serial.println();
-  // Calibrate to drive straight during the initial setup
-  if (!calibrated) {
-    calibrateToDriveStraight();
-    calibrated = true;
-  }
-  // Check for obstacles
-  if (distance <= stopDistance) {
-    driveStop();
-    // Look right with delay
-    lookRight();
-    delay(1000);
-    // Measure distance again after looking left
-    distance = measureDistance();
-    // If there is still an obstacle on the left, look right and drive right
-    if (distance <= stopDistance) {
-      lookLeft();
-      delay(1000);
-    } else {
-      // Move forward if no obstacle
-      driveForward(2);
-    }
-  } else {
-    // Move forward if no obstacle
-    driveForward(2);
-  }
+  openGripper();
+  delay(1000);
+  closeGripper();
+  delay(1000);
 }
 
 //-----------------------------------[Neopixel]-------------------------------
@@ -168,14 +134,14 @@ void setGripperAngle(int angle) {
 // Function to open the gripper (move the servo to the open position)
 void openGripper() {
   // Adjust the angle value based on your servo's specifications
-  int openAngle = 90;
+  int openAngle = 80;
   setGripperAngle(openAngle);
 }
 
 // Function to close the gripper (move the servo to the closed position)
 void closeGripper() {
   // Adjust the angle value based on your servo's specifications
-  int closeAngle = 0;
+  int closeAngle = 30;
   setGripperAngle(closeAngle);
 }
 
