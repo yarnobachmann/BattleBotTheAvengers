@@ -76,6 +76,9 @@ int leftOffset = 100;  // LeftOffset default value set to 100
 
 const int reflectionThreshold = 500; // Adjust this threshold based on your sensor's characteristics
 
+unsigned long gripperTimer = 0;
+const int gripperDelay = 1000; // Delay in milliseconds
+
 //-----------------------------------[Setup function]---------------------------
 
 void setup() {
@@ -106,10 +109,55 @@ void setup() {
 //-----------------------------------[Loop function]----------------------------
 
 void loop() {
-  openGripper();
-  delay(1000);
-  closeGripper();
-  delay(1000);
+
+  if (millis() - gripperTimer >= gripperDelay) {
+    openGripper();
+    gripperTimer = millis(); // Reset the timer
+  }
+
+    // Measure distance
+  long distance = measureDistance();
+  // Read reflection sensor values
+  for (int i = 0; i < numberOfSensors; i++) {
+    sensorValues[i] = analogRead(sensorPins[i]);
+  }
+  // Print reflection sensor values to Serial Monitor
+  Serial.print("Reflection Sensor Values: ");
+  for (int i = 0; i < numberOfSensors; i++) {
+    Serial.print(sensorValues[i]);
+    Serial.print(" ");
+  }
+  Serial.println();
+  // Calibrate to drive straight during the initial setup
+  if (!calibrated) {
+    calibrateToDriveStraight();
+    calibrated = true;
+  }
+  // Check for obstacles
+  if (distance <= stopDistance) {
+    driveStop();
+    // Look right with delay
+    lookRight();
+    delay(1000);
+    // Measure distance again after looking left
+    distance = measureDistance();
+    // If there is still an obstacle on the left, look right and drive right
+    if (distance <= stopDistance) {
+      lookLeft();
+      delay(1000);
+    } else {
+      // Move forward if no obstacle
+      driveForward(2);
+    }
+  } else {
+    // Move forward if no obstacle
+    driveForward(2);
+  }
+  
+  if (millis() - gripperTimer >= gripperDelay) {
+    closeGripper();
+    gripperTimer = millis(); // Reset the timer
+  }
 }
 
 //-----------------------------------[Neopixel]-------------------------------
