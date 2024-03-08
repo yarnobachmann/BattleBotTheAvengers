@@ -16,14 +16,29 @@ const int closedPosition = 110;
 const int trigPin = 4;
 const int echoPin = 8;
 
-const int LINESENSOR_1 = A0; // Brown, 1st sensor
-const int LINESENSOR_2 = A1; // Orange, 2nd sensor
-const int LINESENSOR_3 = A2; // Yellow, 3rd sensor
-const int LINESENSOR_4 = A3; // Green, 4th sensor
-const int LINESENSOR_5 = A4; // Blue, 5th sensor
-const int LINESENSOR_6 = A5; // Purple, 6th sensor
-const int LINESENSOR_7 = A6; // White, 7th sensor
-const int LINESENSOR_8 = A7; // Grey, 8th sensor
+const int LOWVALUE = 700;
+const int LOWVALUEUNIQUE = 600;
+const int HIGHVALUE = 1000;
+
+const float DISTANCE_THRESHOLD = 15.0;
+
+const int LINESENSOR_1 = A0;
+const int LINESENSOR_2 = A1;
+const int LINESENSOR_3 = A2;
+const int LINESENSOR_4 = A3;
+const int LINESENSOR_5 = A4;
+const int LINESENSOR_6 = A5;
+const int LINESENSOR_7 = A6;
+const int LINESENSOR_8 = A7;
+
+// Brown, 0th sensor
+// Orange, 1st sensor
+// Yellow, 2nd sensor
+// Green, 3rd sensor
+// Blue, 4th sensor
+// Purple, 5th sensor
+// White, 6th sensor
+// Grey, 7th sensor
 
 unsigned long startTime = 0; // Variable to store the start time
 unsigned long currentTime = 0; // Variable to store the current time
@@ -42,6 +57,8 @@ int lineCheck8 = 0;
 
 unsigned long previousMillis = 0;
 const long interval = 250;
+
+
 
 void setup() {
   Serial.begin(9600);
@@ -108,7 +125,6 @@ void colors() {
 }
 
 void loop() {
-  
   lineCheck1 = analogRead(LINESENSOR_1);
   lineCheck2 = analogRead(LINESENSOR_2);
   lineCheck3 = analogRead(LINESENSOR_3);
@@ -118,8 +134,21 @@ void loop() {
   lineCheck7 = analogRead(LINESENSOR_7);
   lineCheck8 = analogRead(LINESENSOR_8);
 
-  if((lineCheck1 > 700) && (lineCheck1 < 1000) && (lineCheck2 > 700) && (lineCheck2 < 1000) && (lineCheck3 > 700) && (lineCheck3 < 1000) && (lineCheck4 > 700) && (lineCheck4 < 1000) &&
-  (lineCheck5 > 700) && (lineCheck5< 1000) && (lineCheck6 > 600) && (lineCheck6 < 1000) && (lineCheck7 > 700) && (lineCheck7 < 1000) && (lineCheck8 > 700) && (lineCheck8 < 1000)){
+  digitalWrite(trigPin, LOW);
+  delay(250);
+
+  digitalWrite(trigPin, HIGH);
+  delay(250);
+  digitalWrite(trigPin, LOW);
+
+  duration = pulseIn(echoPin, HIGH);
+  distance = (duration * 0.0343) / 2;
+
+  Serial.print("Afstand in cm: ");
+  Serial.println(distance);
+  
+  if((lineCheck1 > LOWVALUE) && (lineCheck1 < HIGHVALUE) && (lineCheck2 > LOWVALUE) && (lineCheck2 < HIGHVALUE) && (lineCheck3 > LOWVALUE) && (lineCheck3 < HIGHVALUE) && (lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE) &&
+  (lineCheck5 > LOWVALUE) && (lineCheck5< HIGHVALUE) && (lineCheck6 > LOWVALUE) && (lineCheck6 < HIGHVALUE) && (lineCheck7 > LOWVALUE) && (lineCheck7 < HIGHVALUE) && (lineCheck8 > LOWVALUE) && (lineCheck8 < HIGHVALUE)){
     if (startTime == 0) {
       startTime = millis(); // Start the timer
     } else {
@@ -140,7 +169,7 @@ void loop() {
       } 
     } 
   }
-  else if((lineCheck1 > 700) && (lineCheck1 < 1000) && (lineCheck2 > 700) && (lineCheck2 < 1000) && (lineCheck3 > 700) && (lineCheck3 < 1000) && (lineCheck4 > 700) && (lineCheck4 < 1000) && (lineCheck5 > 700) && (lineCheck5 < 1000)){
+  else if((lineCheck1 > LOWVALUE) && (lineCheck1 < HIGHVALUE) && (lineCheck2 > LOWVALUE) && (lineCheck2 < HIGHVALUE) && (lineCheck3 > LOWVALUE) && (lineCheck3 < HIGHVALUE) && (lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE) && (lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_2, 255);
@@ -148,7 +177,7 @@ void loop() {
     colors();
     delay(100);
   }
-  else if((lineCheck4 > 700) && (lineCheck4 < 1000) && (lineCheck5 > 700) && (lineCheck5 < 1000) && (lineCheck6 > 600) && (lineCheck6 < 1000) && (lineCheck7 > 700) && (lineCheck7 < 1000) && (lineCheck8 > 700) && (lineCheck8 < 1000)){
+  else if((lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE) && (lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE) && (lineCheck6 > LOWVALUE) && (lineCheck6 < HIGHVALUE) && (lineCheck7 > LOWVALUE) && (lineCheck7 < HIGHVALUE) && (lineCheck8 > LOWVALUE) && (lineCheck8 < HIGHVALUE)){
     analogWrite(MOTOR_B_1, 0);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_2, 255);
@@ -156,7 +185,7 @@ void loop() {
     colors();
     delay(100);
   }
-  else if((lineCheck1 > 700) && (lineCheck1 < 1000)){
+  else if((lineCheck1 > LOWVALUE) && (lineCheck1 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 0);
     analogWrite(MOTOR_B_2, 220);
     analogWrite(MOTOR_A_1, 255);
@@ -164,7 +193,7 @@ void loop() {
     startTime = 0;
     colors();
   }
-  else if((lineCheck2 > 700) && (lineCheck2 < 1000)){
+  else if((lineCheck2 > LOWVALUE) && (lineCheck2 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 80);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_1, 0);
@@ -172,7 +201,7 @@ void loop() {
     startTime = 0;
     colors();
   }
-  else if((lineCheck3 > 700) && (lineCheck3 < 1000)){
+  else if((lineCheck3 > LOWVALUE) && (lineCheck3 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 160);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_1, 0);
@@ -180,7 +209,7 @@ void loop() {
     startTime = 0;
     colors();
   }
-  else if(((lineCheck4 > 700) && (lineCheck4 < 1000)) || ((lineCheck5 > 850) && (lineCheck5 < 1000))){
+  else if(((lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE)) || ((lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE))){
     analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_1, 0);
@@ -188,7 +217,7 @@ void loop() {
     startTime = 0;
     colors();
   }
-  else if((lineCheck6 > 600) && (lineCheck6 < 1000)){
+  else if((lineCheck6 > LOWVALUEUNIQUE) && (lineCheck6 < HIGHVALUE)){
     analogWrite(MOTOR_B_2, 160);
     analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_A_1, 0);
@@ -196,7 +225,7 @@ void loop() {
     startTime = 0;
     colors();
   }
-  else if((lineCheck7 > 700) && (lineCheck7 < 1000)){
+  else if((lineCheck7 > LOWVALUE) && (lineCheck7 < HIGHVALUE)){
     analogWrite(MOTOR_B_2, 80);
     analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_A_1, 0);
@@ -204,7 +233,7 @@ void loop() {
     startTime = 0;
     colors();
   }
-  else if((lineCheck8 > 700) && (lineCheck8 < 1000)){
+  else if((lineCheck8 > LOWVALUE) && (lineCheck8 < HIGHVALUE)){
     analogWrite(MOTOR_B_2, 0);
     analogWrite(MOTOR_A_2, 220);
     analogWrite(MOTOR_B_1, 255);
