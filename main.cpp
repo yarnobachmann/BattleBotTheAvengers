@@ -115,13 +115,6 @@ void setup() {
 
   calculatePulsesFor90DegreeTurn(); // Calculate the pulses needed for a 90-degree turn
 
-  turnLeft90(); // Turn left 90 degrees
-
-  turnRight90(); // Turn right 90 degrees
-
-  turnLeft90(); // Turn left 90 degrees
-
-  turnRight90(); // Turn right 90 degrees
 
 }
 
@@ -130,9 +123,6 @@ void setup() {
 void loop() {
 
   turnLeft90(); // Turn left 90 degrees
-  delay(1000); // Wait for 1 second
-  turnRight90(); // Turn right 90 degrees
-  delay(1000); // Wait for 1 second
   
 }
 
