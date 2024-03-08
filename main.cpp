@@ -32,6 +32,10 @@ void calibrateToDriveStraight();
 void leftPulseInterrupt();
 void rightPulseInterrupt();
 
+void calculatePulsesFor90DegreeTurn();
+void turnLeft90();
+void turnRight90();
+
 //-----------------------------------[Declare pins]-------------------------------
 
 #define PIN            13    // Digital pin connected to the Neopixel
@@ -79,6 +83,10 @@ const int reflectionThreshold = 500; // Adjust this threshold based on your sens
 unsigned long gripperTimer = 0;
 const int gripperDelay = 1000; // Delay in milliseconds
 
+
+int requiredPulsesForTurn = 0; // Variable to store the required pulses for a 90-degree turn
+double pi = 3.14159; // Value of PI
+
 //-----------------------------------[Setup function]---------------------------
 
 void setup() {
@@ -102,63 +110,82 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(motorLeftRead), leftPulseInterrupt, CHANGE);
   attachInterrupt(digitalPinToInterrupt(motorRightRead), rightPulseInterrupt, CHANGE);
   Serial.begin(9600);
-   
+  
   calibrateServo(); // Calibrate the servo to a known initial position
+
+  calculatePulsesFor90DegreeTurn(); // Calculate the pulses needed for a 90-degree turn
+
+  turnLeft90(); // Turn left 90 degrees
+
+  turnRight90(); // Turn right 90 degrees
+
+  turnLeft90(); // Turn left 90 degrees
+
+  turnRight90(); // Turn right 90 degrees
+
 }
 
 //-----------------------------------[Loop function]----------------------------
 
 void loop() {
 
-  if (millis() - gripperTimer >= gripperDelay) {
-    openGripper();
-    gripperTimer = millis(); // Reset the timer
-  }
-
-    // Measure distance
-  long distance = measureDistance();
-  // Read reflection sensor values
-  for (int i = 0; i < numberOfSensors; i++) {
-    sensorValues[i] = analogRead(sensorPins[i]);
-  }
-  // Print reflection sensor values to Serial Monitor
-  Serial.print("Reflection Sensor Values: ");
-  for (int i = 0; i < numberOfSensors; i++) {
-    Serial.print(sensorValues[i]);
-    Serial.print(" ");
-  }
-  Serial.println();
-  // Calibrate to drive straight during the initial setup
-  if (!calibrated) {
-    calibrateToDriveStraight();
-    calibrated = true;
-  }
-  // Check for obstacles
-  if (distance <= stopDistance) {
-    driveStop();
-    // Look right with delay
-    lookRight();
-    delay(1000);
-    // Measure distance again after looking left
-    distance = measureDistance();
-    // If there is still an obstacle on the left, look right and drive right
-    if (distance <= stopDistance) {
-      lookLeft();
-      delay(1000);
-    } else {
-      // Move forward if no obstacle
-      driveForward(2);
-    }
-  } else {
-    // Move forward if no obstacle
-    driveForward(2);
-  }
+  turnLeft90(); // Turn left 90 degrees
+  delay(1000); // Wait for 1 second
+  turnRight90(); // Turn right 90 degrees
+  delay(1000); // Wait for 1 second
   
-  if (millis() - gripperTimer >= gripperDelay) {
-    closeGripper();
-    gripperTimer = millis(); // Reset the timer
-  }
 }
+
+//-----------------------------------[testcode]-------------------------------
+
+// Calculate how many pulses are needed to turn 90 degrees
+void calculatePulsesFor90DegreeTurn() {
+  double wheelCircumference = pi * 6.6; // cm
+  double distancePerPulse = wheelCircumference / 40.0; 
+  double distanceBetweenWheels = 11.5; // cm
+
+   // Calculate distance to travel for a 90 degree turn (assuming the robot's turning radius is the distance between the wheels)
+   double distanceForTurn = (pi / 2.0) * distanceBetweenWheels; // Replace 'distanceBetweenWheels' with the actual value
+
+   // Calculate pulses needed for the turn
+  requiredPulsesForTurn = 150;
+}
+
+// Turn 90 degrees left 
+void turnLeft90() {
+  calculatePulsesFor90DegreeTurn(); // Ensure pulses are calculated
+
+  // Reset pulse counters
+  noInterrupts(); // Temporarily disable interrupts
+  interruptLeft = 0;
+  interruptRight = 0;
+  interrupts();
+
+  // Turn left until pulses are reached
+  while (interruptRight < requiredPulsesForTurn) {
+    driveLeft(2); // Adjust speed if needed
+  }
+  driveStop();
+}
+
+// Turn 90 degrees right
+void turnRight90() {
+  calculatePulsesFor90DegreeTurn(); // Ensure pulses are calculated
+
+  // Reset pulse counters
+  noInterrupts(); // Temporarily disable interrupts
+  interruptLeft = 0;
+  interruptRight = 0;
+  interrupts();
+
+  // Turn right until pulses are reached
+  while (interruptLeft < requiredPulsesForTurn) {
+    driveRight(2); // Adjust speed if needed
+  }
+  driveStop();
+}
+
+
 
 //-----------------------------------[Neopixel]-------------------------------
 
