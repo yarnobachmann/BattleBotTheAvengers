@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
+#include <Adafruit_LSM6DS3TRC.h>
 #ifdef __AVR__
   #include <avr/power.h>
 #endif
@@ -34,22 +35,22 @@ void rightPulseInterrupt();
 
 //-----------------------------------[Declare pins]-------------------------------
 
-#define PIN            13    // Digital pin connected to the Neopixel
-#define NUMPIXELS      4    // Number of Neopixels in your strip
+#define PIN 13    // Digital pin connected to the Neopixel
+#define NUMPIXELS 4    // Number of Neopixels in your strip
 
-const int motorLeftBack =   12;   // Motor pin A1
-const int motorLeftFwd =    11;  // Motor pin A2
-const int motorRightFwd =   10;  // Motor pin B1
-const int motorRightBack =  9;   // Motor pin B2
+#define MOTOR_LEFT_BACKWARD 12   // Motor pin A1
+#define MOTOR_LEFT_FORWARD  11  // Motor pin A2
+#define MOTOR_RIGHT_FORWARD 10  // Motor pin B1
+#define MOTOR_RIGHT_BACKWARD 9   // Motor pin B2
+#define MOTOR_LEFT_READ 2   // Arduino A0
+#define MOTOR_RIGHT_READ 3   // Arduino A1
 
-const int servo = 5; // servo
-const int gripper = 6; // gripper GR
+#define GRIPPER_PIN 6 // gripper GR
+#
 
-const int triggerPin = 8; // HC-SR04 trigger pin
-const int echoPin = 4;    // HC-SR04 echo pin
-
-const int motorLeftRead =   2;   // Arduino A0
-const int motorRightRead =  3;   // Arduino A1
+#define SERVO_PIN 5 // servo
+#define TRIGGER_PIN 8 // HC-SR04 trigger pin
+#define ECHO_PIN 4    // HC-SR04 echo pin
 
 const int numberOfSensors = 8; // Number of sensors used
 int sensorPins[numberOfSensors] = {A7 ,A6, A5, A4, A3, A2, A1, A0}; // Analog pins for the sensors
@@ -85,22 +86,22 @@ void setup() {
   strip.begin();  // Initialize the Neopixel strip
   strip.show();   // Initialize all pixels to 'off'
 
-  pinMode(motorLeftFwd,   OUTPUT);
-  pinMode(motorLeftBack,  OUTPUT);
-  pinMode(motorRightBack, OUTPUT);
-  pinMode(motorRightFwd,  OUTPUT);
-  pinMode(motorLeftRead,  INPUT);
-  pinMode(motorRightRead, INPUT);
-  pinMode(triggerPin, OUTPUT);
-  pinMode(echoPin, INPUT);
-  pinMode(servo, OUTPUT);
-  pinMode(gripper, OUTPUT);
+  pinMode(MOTOR_LEFT_FORWARD,   OUTPUT);
+  pinMode(MOTOR_LEFT_BACKWARD,  OUTPUT);
+  pinMode(MOTOR_RIGHT_BACKWARD, OUTPUT);
+  pinMode(MOTOR_RIGHT_FORWARD,  OUTPUT);
+  pinMode(MOTOR_LEFT_READ,  INPUT);
+  pinMode(MOTOR_RIGHT_READ, INPUT);
+  pinMode(TRIGGER_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(SERVO_PIN, OUTPUT);
+  pinMode(GRIPPER_PIN, OUTPUT);
   for(int i = 0;i<=7;i++) 
   {
     pinMode(sensorPins[i], INPUT);
   }
-  attachInterrupt(digitalPinToInterrupt(motorLeftRead), leftPulseInterrupt, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(motorRightRead), rightPulseInterrupt, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(MOTOR_LEFT_READ), leftPulseInterrupt, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(MOTOR_RIGHT_READ), rightPulseInterrupt, CHANGE);
   Serial.begin(9600);
    
   calibrateServo(); // Calibrate the servo to a known initial position
@@ -109,7 +110,7 @@ void setup() {
 //-----------------------------------[Loop function]----------------------------
 
 void loop() {
-
+ 
   if (millis() - gripperTimer >= gripperDelay) {
     openGripper();
     gripperTimer = millis(); // Reset the timer
@@ -133,7 +134,7 @@ void loop() {
     calibrateToDriveStraight();
     calibrated = true;
   }
-  // Check for obstacles
+ // Check for obstacles
   if (distance <= stopDistance) {
     driveStop();
     // Look right with delay
@@ -146,14 +147,21 @@ void loop() {
       lookLeft();
       delay(1000);
     } else {
-      // Move forward if no obstacle
-      driveForward(2);
+      // Move backward if both interrupts are low
+      if (interruptLeft == 0 && interruptRight == 0) {
+        driveBack(2);
+      } else {
+        // Move forward if no obstacle
+        driveForward(2);
+      }
     }
+    // Reset interrupts after processing
+    interruptLeft = 0;
+    interruptRight = 0;
   } else {
     // Move forward if no obstacle
     driveForward(2);
   }
-  
   if (millis() - gripperTimer >= gripperDelay) {
     closeGripper();
     gripperTimer = millis(); // Reset the timer
@@ -174,9 +182,9 @@ void setGripperAngle(int angle) {
   // Convert the angle to the corresponding PWM signal
   int pwmValue = map(angle, 0, 180, 544, 2400);
   // Send the PWM signal to the servo
-  digitalWrite(gripper, HIGH);
+  digitalWrite(GRIPPER_PIN, HIGH);
   delayMicroseconds(pwmValue);
-  digitalWrite(gripper, LOW);
+  digitalWrite(GRIPPER_PIN, LOW);
 }
 
 // Function to open the gripper (move the servo to the open position)
@@ -199,9 +207,9 @@ void setServoAngle(int angle) {
   // Convert the angle to the corresponding PWM signal
   int pwmValue = map(angle, 0, 180, 544, 2400);
   // Send the PWM signal to the servo
-  digitalWrite(servo, HIGH);
+  digitalWrite(SERVO_PIN, HIGH);
   delayMicroseconds(pwmValue);
-  digitalWrite(servo, LOW);
+  digitalWrite(SERVO_PIN, LOW);
 }
 
 // Function to calibrate the servo to find the middle position
@@ -264,10 +272,10 @@ void calibrateToDriveStraight() {
 
 // Sets motor power to input
 void setMotors(double LFWD, double LBACK, double RFWD, double RBACK) {
-  analogWrite(motorLeftFwd,   round(LFWD * leftOffset));
-  analogWrite(motorLeftBack,  round(LBACK * leftOffset));
-  analogWrite(motorRightFwd,  round(RFWD * rightOffset));
-  analogWrite(motorRightBack, round(RBACK * rightOffset));
+  analogWrite(MOTOR_LEFT_FORWARD,   round(LFWD * leftOffset));
+  analogWrite(MOTOR_LEFT_BACKWARD,  round(LBACK * leftOffset));
+  analogWrite(MOTOR_RIGHT_FORWARD,  round(RFWD * rightOffset));
+  analogWrite(MOTOR_RIGHT_BACKWARD, round(RBACK * rightOffset));
 }
 
 //-----------------------------------[Drive functions]------------------------
@@ -383,12 +391,12 @@ long measureDistance()
 {
   // Echo detection to measure the distance
   long duration, distance;
-  digitalWrite(triggerPin, LOW);
+  digitalWrite(TRIGGER_PIN, LOW);
   delayMicroseconds(2);
-  digitalWrite(triggerPin, HIGH);
+  digitalWrite(TRIGGER_PIN, HIGH);
   delayMicroseconds(10);
-  digitalWrite(triggerPin, LOW);
-  duration = pulseIn(echoPin, HIGH);
+  digitalWrite(TRIGGER_PIN, LOW);
+  duration = pulseIn(ECHO_PIN, HIGH);
   distance = duration * 0.034 / 2;
   return distance;
 }
