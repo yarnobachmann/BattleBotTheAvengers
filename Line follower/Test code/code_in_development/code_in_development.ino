@@ -10,7 +10,7 @@ const int MOTOR_B_1 = 6; // Right wheel backwards
 const int MOTOR_B_2 = 5; // Right wheel forwards
 
 const int gripperPin = 9;
-const int GRIPPER_OPEN = 1600;
+const int GRIPPER_OPEN = 1800;
 const int GRIPPER_CLOSED = 950;
 const int SERVO_INTERVAL = 20;
 const int GRIPPER_TOGGLE = 1000;
@@ -19,7 +19,7 @@ bool gripperOpen = true;
 const int trigPin = 4;
 const int echoPin = 8;
 
-const int LOWVALUE = 700;
+const int LOWVALUE = 600;
 const int LOWVALUEUNIQUE = 600;
 const int HIGHVALUE = 1000;
 
@@ -145,11 +145,12 @@ void lineFollower() {
     } else {
       currentTime = millis(); // Update the current time
       if (currentTime - startTime >= 200) {
-        servo(GRIPPER_OPEN);
         analogWrite(MOTOR_A_1, 255);
         analogWrite(MOTOR_A_2, 0);
         analogWrite(MOTOR_B_1, 255);
         analogWrite(MOTOR_B_2, 0);
+        delay(300);
+        servo(GRIPPER_OPEN);
         delay(2000);
         analogWrite(MOTOR_A_1, 0);
         analogWrite(MOTOR_A_2, 0);
@@ -274,31 +275,19 @@ void lineFollower() {
 }
 
 void servo(int pulse) {
-  static unsigned long timer;
-  static int pulse1;
-  if (pulse > 0) {
-    pulse1 = pulse;
-  }
-  if (millis() > timer) {
-    digitalWrite(gripperPin, HIGH);
-    delayMicroseconds(pulse1);
-    digitalWrite(gripperPin, LOW);
-    timer = millis() + SERVO_INTERVAL;
-  }
+  // Control the servo position using PWM
+  digitalWrite(gripperPin, HIGH);
+  delayMicroseconds(pulse);
+  digitalWrite(gripperPin, LOW);
 }
 
-void gripperToggle() {
-  static unsigned long timer;
-
-  if (millis() > timer) {
-    if (gripperOpen) {
-      servo(GRIPPER_CLOSED);
-      gripperOpen = false; // Update gripper state
-    } else {
-      servo(GRIPPER_OPEN);
-      gripperOpen = true; // Update gripper state
-    }
-    timer = millis() + GRIPPER_TOGGLE;
+void gripperToggle(bool open) {
+  if (open) {
+    // Open the gripper
+    servo(GRIPPER_OPEN);
+  } else {
+    // Close the gripper
+    servo(GRIPPER_CLOSED);
   }
 }
 
@@ -337,7 +326,7 @@ void loop() {
     for (int i = 0; i < 3; i++) {
       do {
         delay(100);
-      } while (getDistance() > 35);
+      } while (getDistance() > 25);
     }
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_2, 230);
@@ -366,6 +355,11 @@ void loop() {
     analogWrite(MOTOR_A_2, 180);
     delay(200);
 
+    for (int i = 0; i < 8; i++) {
+      servo(GRIPPER_CLOSED);
+     }
+    
+
     LINE = average(lineValues, 6) + 250;
     
     while (analogRead(LINE_SENSOR[4]) > LINE && analogRead(LINE_SENSOR[5]) > LINE) {
@@ -378,7 +372,6 @@ void loop() {
   (lineCheck5 < LOWVALUE) && (lineCheck5 > HIGHVALUE) && (lineCheck6 < LOWVALUE) && (lineCheck6 > HIGHVALUE) && (lineCheck7 < LOWVALUE) && (lineCheck7 > HIGHVALUE) && (lineCheck8 < LOWVALUE) && (lineCheck8 > HIGHVALUE))
     analogWrite(MOTOR_B_2, 0);
     analogWrite(MOTOR_A_2, 0);
-    servo(GRIPPER_CLOSED);
     analogWrite(MOTOR_B_2, 200);
     analogWrite(MOTOR_A_1, 200);
     delay(500);
