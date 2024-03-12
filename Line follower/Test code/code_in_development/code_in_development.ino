@@ -128,8 +128,8 @@ void lineFollower() {
   lineCheck7 = analogRead(LINE_SENSOR[6]);
   lineCheck8 = analogRead(LINE_SENSOR[7]);
   
-  if((lineCheck1 > LINE) && (lineCheck2 > LINE) && (lineCheck3 > LINE - 100) && (lineCheck4 > LINE - 100) && 
-  (lineCheck5 > LINE) && (lineCheck6 > LINE - 100) && (lineCheck7 > LINE) && (lineCheck8 > LINE)){
+  if((lineCheck1 > LINE) && (lineCheck2 > LINE) && (lineCheck3 > LINE ) && (lineCheck4 > LINE ) && 
+  (lineCheck5 > LINE) && (lineCheck6 > LINE ) && (lineCheck7 > LINE) && (lineCheck8 > LINE)){
     if (startTime == 0) {
       startTime = millis(); // Start the timer
     } else {
@@ -150,7 +150,7 @@ void lineFollower() {
       } 
     } 
   }
-  else if((lineCheck1 > LINE) && (lineCheck2 > LINE)  && (lineCheck3 > LINE - 100)  && (lineCheck4 > LINE - 100)  && (lineCheck5 > LINE) ){
+  else if((lineCheck1 > LINE) && (lineCheck2 > LINE)  && (lineCheck3 > LINE )  && (lineCheck4 > LINE )  && (lineCheck5 > LINE) ){
     analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_2, 255);
@@ -158,7 +158,7 @@ void lineFollower() {
     colors();
     delay(100);
   }
-  else if((lineCheck4 > LINE - 100)  && (lineCheck5 > LINE)  && (lineCheck6 > LINE -100)  && (lineCheck7 > LINE)  && (lineCheck8 > LINE) ){
+  else if((lineCheck4 > LINE )  && (lineCheck5 > LINE)  && (lineCheck6 > LINE)  && (lineCheck7 > LINE)  && (lineCheck8 > LINE) ){
     analogWrite(MOTOR_B_1, 0);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_2, 255);
@@ -166,7 +166,7 @@ void lineFollower() {
     colors();
     delay(100);
   }
-  else if((lineCheck1 > LINE) ){
+  else if((lineCheck1 > LINE)){
     analogWrite(MOTOR_A_2, 0);
     analogWrite(MOTOR_B_2, 220);
     analogWrite(MOTOR_A_1, 255);
@@ -174,7 +174,7 @@ void lineFollower() {
     startTime = 0;
     colors();
   }
-  else if((lineCheck2 > LINE) ){
+  else if((lineCheck2 > LINE)){
     analogWrite(MOTOR_A_2, 80);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_1, 0);
@@ -182,7 +182,7 @@ void lineFollower() {
     startTime = 0;
     colors();
   }
-  else if((lineCheck3 > LINE - 100) ){
+  else if((lineCheck3 > LINE )){
     analogWrite(MOTOR_A_2, 160);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_1, 0);
@@ -190,7 +190,7 @@ void lineFollower() {
     startTime = 0;
     colors();
   }
-  else if(((lineCheck4 > LINE - 100) ) || ((lineCheck5 > LINE) )){
+  else if(((lineCheck4 > LINE ) ) || ((lineCheck5 > LINE) )){
     analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_1, 0);
@@ -198,7 +198,7 @@ void lineFollower() {
     startTime = 0;
     colors();
   }
-  else if((lineCheck6 > LINE -100) ){
+  else if((lineCheck6 > LINE) ){
     analogWrite(MOTOR_B_2, 160);
     analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_A_1, 0);
@@ -266,7 +266,7 @@ float getDistance()
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
   duration = pulseIn(echoPin, HIGH);
-  Serial.println(0.017 * duration);
+  //Serial.println(0.017 * duration);
   return 0.017 * duration;
 }
 
@@ -283,6 +283,7 @@ int average(int numbers[], int size)
 
 void loop() {
   color0();
+  Serial.println(analogRead(LINE_SENSOR[0]));
   
   if (START) {
     lineFollower();
