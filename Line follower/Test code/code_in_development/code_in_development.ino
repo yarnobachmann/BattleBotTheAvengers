@@ -14,9 +14,19 @@ const int GRIPPER_OPEN = 1600;
 const int GRIPPER_CLOSED = 950;
 const int SERVO_INTERVAL = 20;
 const int GRIPPER_TOGGLE = 1000;
+bool gripperOpen = true;
 
 const int trigPin = 4;
 const int echoPin = 8;
+
+const int LOWVALUE = 700;
+const int LOWVALUEUNIQUE = 600;
+const int HIGHVALUE = 1000;
+
+int lastValueA1 = 0;
+int lastValueA2 = 0;
+int lastValueB1 = 0;
+int lastValueB2 = 0;
 
 int lineValues[] = {0, 0, 0, 0, 0, 0};
 
@@ -128,19 +138,24 @@ void lineFollower() {
   lineCheck7 = analogRead(LINE_SENSOR[6]);
   lineCheck8 = analogRead(LINE_SENSOR[7]);
   
-  if((lineCheck1 > LINE) && (lineCheck2 > LINE) && (lineCheck3 > LINE ) && (lineCheck4 > LINE ) && 
-  (lineCheck5 > LINE) && (lineCheck6 > LINE ) && (lineCheck7 > LINE) && (lineCheck8 > LINE)){
+  if((lineCheck1 > LOWVALUE) && (lineCheck1 < HIGHVALUE) && (lineCheck2 > LOWVALUE) && (lineCheck2 < HIGHVALUE) && (lineCheck3 > LOWVALUE) && (lineCheck3 < HIGHVALUE) && (lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE) &&
+  (lineCheck5 > LOWVALUE) && (lineCheck5< HIGHVALUE) && (lineCheck6 > LOWVALUE) && (lineCheck6 < HIGHVALUE) && (lineCheck7 > LOWVALUE) && (lineCheck7 < HIGHVALUE) && (lineCheck8 > LOWVALUE) && (lineCheck8 < HIGHVALUE)){
     if (startTime == 0) {
       startTime = millis(); // Start the timer
     } else {
       currentTime = millis(); // Update the current time
-      if (currentTime - startTime >= 500) {
-        // Turn off motors
+      if (currentTime - startTime >= 200) {
+        servo(GRIPPER_OPEN);
+        analogWrite(MOTOR_A_1, 255);
+        analogWrite(MOTOR_A_2, 0);
+        analogWrite(MOTOR_B_1, 255);
+        analogWrite(MOTOR_B_2, 0);
+        delay(2000);
         analogWrite(MOTOR_A_1, 0);
         analogWrite(MOTOR_A_2, 0);
         analogWrite(MOTOR_B_1, 0);
         analogWrite(MOTOR_B_2, 0);
-        color0();
+        delay(9999999999999999999999999999999999999);
       } else {
         // Run motors at slower speed
         analogWrite(MOTOR_A_1, 0);
@@ -150,86 +165,113 @@ void lineFollower() {
       } 
     } 
   }
-  else if((lineCheck1 > LINE) && (lineCheck2 > LINE)  && (lineCheck3 > LINE )  && (lineCheck4 > LINE )  && (lineCheck5 > LINE) ){
+  else if((lineCheck1 > LOWVALUE) && (lineCheck1 < HIGHVALUE) && (lineCheck2 > LOWVALUE) && (lineCheck2 < HIGHVALUE) && (lineCheck3 > LOWVALUE) && (lineCheck3 < HIGHVALUE) && (lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE) && (lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_2, 255);
     startTime = 0;
-    colors();
     delay(100);
+    lastValueA1 = 0;
+    lastValueA2 = 255;
+    lastValueB1 = 0;
+    lastValueB2 = 255;
   }
-  else if((lineCheck4 > LINE )  && (lineCheck5 > LINE)  && (lineCheck6 > LINE)  && (lineCheck7 > LINE)  && (lineCheck8 > LINE) ){
+  else if((lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE) && (lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE) && (lineCheck6 > LOWVALUE) && (lineCheck6 < HIGHVALUE) && (lineCheck7 > LOWVALUE) && (lineCheck7 < HIGHVALUE) && (lineCheck8 > LOWVALUE) && (lineCheck8 < HIGHVALUE)){
     analogWrite(MOTOR_B_1, 0);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_2, 255);
     startTime = 0;
-    colors();
     delay(100);
+    lastValueA1 = 0;
+    lastValueA2 = 255;
+    lastValueB1 = 0;
+    lastValueB2 = 255;
   }
-  else if((lineCheck1 > LINE)){
+  else if((lineCheck1 > LOWVALUE) && (lineCheck1 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 0);
     analogWrite(MOTOR_B_2, 220);
     analogWrite(MOTOR_A_1, 255);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
-    colors();
+    lastValueA1 = 255;
+    lastValueA2 = 0;
+    lastValueB1 = 0;
+    lastValueB2 = 220;
   }
-  else if((lineCheck2 > LINE)){
+  else if((lineCheck2 > LOWVALUE) && (lineCheck2 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 80);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
     colors();
+    lastValueA1 = 0;
+    lastValueA2 = 80;
+    lastValueB1 = 0;
+    lastValueB2 = 255;
   }
-  else if((lineCheck3 > LINE )){
+  else if((lineCheck3 > LOWVALUE) && (lineCheck3 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 160);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
-    colors();
+    lastValueA1 = 0;
+    lastValueA2 = 160;
+    lastValueB1 = 0;
+    lastValueB2 = 255;
   }
-  else if(((lineCheck4 > LINE ) ) || ((lineCheck5 > LINE) )){
+  else if(((lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE)) || ((lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE))){
     analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
-    colors();
+    lastValueA1 = 0;
+    lastValueA2 = 255;
+    lastValueB1 = 0;
+    lastValueB2 = 255;
   }
-  else if((lineCheck6 > LINE) ){
+  else if((lineCheck6 > LOWVALUEUNIQUE) && (lineCheck6 < HIGHVALUE)){
     analogWrite(MOTOR_B_2, 160);
     analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
-    colors();
+    lastValueA1 = 0;
+    lastValueA2 = 255;
+    lastValueB1 = 0;
+    lastValueB2 = 160;
   }
-  else if((lineCheck7 > LINE) ){
+  else if((lineCheck7 > LOWVALUE) && (lineCheck7 < HIGHVALUE)){
     analogWrite(MOTOR_B_2, 80);
     analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
-    colors();
+    lastValueA1 = 0;
+    lastValueA2 = 255;
+    lastValueB1 = 0;
+    lastValueB2 = 80;
   }
-  else if((lineCheck8 > LINE) ){
+  else if((lineCheck8 > LOWVALUE) && (lineCheck8 < HIGHVALUE)){
     analogWrite(MOTOR_B_2, 0);
     analogWrite(MOTOR_A_2, 220);
     analogWrite(MOTOR_B_1, 255);
     analogWrite(MOTOR_A_1, 0);
     startTime = 0;
-    colors();
+    lastValueA1 = 0;
+    lastValueA2 = 220;
+    lastValueB1 = 255;
+    lastValueB2 = 0;
   }
   else{
-    analogWrite(MOTOR_A_1, 0);
-    analogWrite(MOTOR_A_2, 0);
-    analogWrite(MOTOR_B_1, 0);
-    analogWrite(MOTOR_B_2, 0);
-    color0(); 
-  }
-} 
+    analogWrite(MOTOR_A_1, lastValueA1);
+    analogWrite(MOTOR_A_2, lastValueA2);
+    analogWrite(MOTOR_B_1, lastValueB1);
+    analogWrite(MOTOR_B_2, lastValueB2);
+  } 
+}
 
 void servo(int pulse) {
   static unsigned long timer;
@@ -247,14 +289,14 @@ void servo(int pulse) {
 
 void gripperToggle() {
   static unsigned long timer;
-  static bool state;
+
   if (millis() > timer) {
-    if (state == true) {
-      servo(GRIPPER_OPEN);
-      state = false;
-    } else {
+    if (gripperOpen) {
       servo(GRIPPER_CLOSED);
-      state = true;
+      gripperOpen = false; // Update gripper state
+    } else {
+      servo(GRIPPER_OPEN);
+      gripperOpen = true; // Update gripper state
     }
     timer = millis() + GRIPPER_TOGGLE;
   }
@@ -281,12 +323,13 @@ int average(int numbers[], int size)
 }
 
 
-void loop() {
+void loop() {  
   color0();
   Serial.println(analogRead(LINE_SENSOR[0]));
   
   if (START) {
     lineFollower();
+    colors();
   }
   else {
     getDistance();
@@ -294,10 +337,10 @@ void loop() {
     for (int i = 0; i < 3; i++) {
       do {
         delay(100);
-      } while (getDistance() > 24);
+      } while (getDistance() > 35);
     }
     analogWrite(MOTOR_B_2, 255);
-    analogWrite(MOTOR_A_2, 255);
+    analogWrite(MOTOR_A_2, 230);
 
     for (int i = 0; i < 6; i += 2) {
       while (analogRead(LINE_SENSOR[0]) > LINE && analogRead(LINE_SENSOR[6]) > LINE) {
@@ -305,22 +348,22 @@ void loop() {
       }
 
       lineValues[i] = analogRead(LINE_SENSOR[3]);
-      delay(100);
+      delay(200);
       
       analogWrite(MOTOR_B_2, 150);
-      analogWrite(MOTOR_A_2, 150);
+      analogWrite(MOTOR_A_2, 130);
       while (analogRead(LINE_SENSOR[0]) < LINE && analogRead(LINE_SENSOR[6]) < LINE) {
         delay(1);
       }
 
       lineValues[i + 1] = analogRead(LINE_SENSOR[3]);
-      delay(100);
+      delay(200);
       
       analogWrite(MOTOR_B_2, 150);
-      analogWrite(MOTOR_A_2, 150);
+      analogWrite(MOTOR_A_2, 130);
     }
     analogWrite(MOTOR_B_2, 200);
-    analogWrite(MOTOR_A_2, 200);
+    analogWrite(MOTOR_A_2, 180);
     delay(200);
 
     LINE = average(lineValues, 6) + 250;
@@ -331,10 +374,14 @@ void loop() {
     while (analogRead(LINE_SENSOR[4]) < LINE) {
       delay(1);
     }
-    servo(GRIPPER_CLOSED);
-    analogWrite(MOTOR_B_2, 150);
+    if((lineCheck1 < LOWVALUE) && (lineCheck1 > HIGHVALUE) && (lineCheck2 < LOWVALUE) && (lineCheck2 > HIGHVALUE) && (lineCheck3 < LOWVALUE) && (lineCheck3 > HIGHVALUE) && (lineCheck4 < LOWVALUE) && (lineCheck4 > HIGHVALUE) &&
+  (lineCheck5 < LOWVALUE) && (lineCheck5 > HIGHVALUE) && (lineCheck6 < LOWVALUE) && (lineCheck6 > HIGHVALUE) && (lineCheck7 < LOWVALUE) && (lineCheck7 > HIGHVALUE) && (lineCheck8 < LOWVALUE) && (lineCheck8 > HIGHVALUE))
+    analogWrite(MOTOR_B_2, 0);
     analogWrite(MOTOR_A_2, 0);
-    delay(1000);
+    servo(GRIPPER_CLOSED);
+    analogWrite(MOTOR_B_2, 200);
+    analogWrite(MOTOR_A_1, 200);
+    delay(500);
 
     do {
       analogWrite(MOTOR_B_2, 150);
