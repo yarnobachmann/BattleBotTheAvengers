@@ -12,8 +12,6 @@ const int MOTOR_B_2 = 5; // Right wheel forwards
 const int gripperPin = 9;
 const int GRIPPER_OPEN = 1800;
 const int GRIPPER_CLOSED = 950;
-const int SERVO_INTERVAL = 20;
-const int GRIPPER_TOGGLE = 1000;
 bool gripperOpen = true;
 
 const int trigPin = 4;
@@ -122,12 +120,6 @@ void colors() {
   }
 }
 
-void start() {
-  for(int i = 0; i > 0; i++){
-    
-  }
-}
-
 void lineFollower() {
   lineCheck1 = analogRead(LINE_SENSOR[0]);
   lineCheck2 = analogRead(LINE_SENSOR[1]);
@@ -137,9 +129,10 @@ void lineFollower() {
   lineCheck6 = analogRead(LINE_SENSOR[5]);
   lineCheck7 = analogRead(LINE_SENSOR[6]);
   lineCheck8 = analogRead(LINE_SENSOR[7]);
+
   
   if((lineCheck1 > LOWVALUE) && (lineCheck1 < HIGHVALUE) && (lineCheck2 > LOWVALUE) && (lineCheck2 < HIGHVALUE) && (lineCheck3 > LOWVALUE) && (lineCheck3 < HIGHVALUE) && (lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE) &&
-  (lineCheck5 > LOWVALUE) && (lineCheck5< HIGHVALUE) && (lineCheck6 > LOWVALUE) && (lineCheck6 < HIGHVALUE) && (lineCheck7 > LOWVALUE) && (lineCheck7 < HIGHVALUE) && (lineCheck8 > LOWVALUE) && (lineCheck8 < HIGHVALUE)){
+  (lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE) && (lineCheck6 > LOWVALUE) && (lineCheck6 < HIGHVALUE) && (lineCheck7 > LOWVALUE) && (lineCheck7 < HIGHVALUE) && (lineCheck8 > LOWVALUE) && (lineCheck8 < HIGHVALUE)){
     if (startTime == 0) {
       startTime = millis(); // Start the timer
     } else {
@@ -151,12 +144,14 @@ void lineFollower() {
         analogWrite(MOTOR_B_2, 0);
         delay(300);
         servo(GRIPPER_OPEN);
-        delay(2000);
-        analogWrite(MOTOR_A_1, 0);
-        analogWrite(MOTOR_A_2, 0);
-        analogWrite(MOTOR_B_1, 0);
-        analogWrite(MOTOR_B_2, 0);
-        delay(9999999999999999999999999999999999999);
+        delay(1500);
+        for (int i = 0; i < 10;) {
+          analogWrite(MOTOR_A_1, 0);
+          analogWrite(MOTOR_A_2, 0);
+          analogWrite(MOTOR_B_1, 0);
+          analogWrite(MOTOR_B_2, 0);
+        }
+        
       } else {
         // Run motors at slower speed
         analogWrite(MOTOR_A_1, 0);
@@ -206,8 +201,8 @@ void lineFollower() {
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
     colors();
-    lastValueA1 = 0;
-    lastValueA2 = 80;
+    lastValueA1 = 220;
+    lastValueA2 = 0;
     lastValueB1 = 0;
     lastValueB2 = 255;
   }
@@ -217,8 +212,8 @@ void lineFollower() {
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
-    lastValueA1 = 0;
-    lastValueA2 = 160;
+    lastValueA1 = 220;
+    lastValueA2 = 0;
     lastValueB1 = 0;
     lastValueB2 = 255;
   }
@@ -228,8 +223,8 @@ void lineFollower() {
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
-    lastValueA1 = 0;
-    lastValueA2 = 255;
+    lastValueA1 = 220;
+    lastValueA2 = 0;
     lastValueB1 = 0;
     lastValueB2 = 255;
   }
@@ -241,8 +236,8 @@ void lineFollower() {
     startTime = 0;
     lastValueA1 = 0;
     lastValueA2 = 255;
-    lastValueB1 = 0;
-    lastValueB2 = 160;
+    lastValueB1 = 220;
+    lastValueB2 = 0;
   }
   else if((lineCheck7 > LOWVALUE) && (lineCheck7 < HIGHVALUE)){
     analogWrite(MOTOR_B_2, 80);
@@ -252,8 +247,8 @@ void lineFollower() {
     startTime = 0;
     lastValueA1 = 0;
     lastValueA2 = 255;
-    lastValueB1 = 0;
-    lastValueB2 = 80;
+    lastValueB1 = 220;
+    lastValueB2 = 0;
   }
   else if((lineCheck8 > LOWVALUE) && (lineCheck8 < HIGHVALUE)){
     analogWrite(MOTOR_B_2, 0);
@@ -262,8 +257,8 @@ void lineFollower() {
     analogWrite(MOTOR_A_1, 0);
     startTime = 0;
     lastValueA1 = 0;
-    lastValueA2 = 220;
-    lastValueB1 = 255;
+    lastValueA2 = 255;
+    lastValueB1 = 220;
     lastValueB2 = 0;
   }
   else{
@@ -314,11 +309,10 @@ int average(int numbers[], int size)
 
 void loop() {  
   color0();
-  Serial.println(analogRead(LINE_SENSOR[0]));
   
   if (START) {
     lineFollower();
-    colors();
+    Serial.println(analogRead(LINE_SENSOR[0]));
   }
   else {
     getDistance();
@@ -326,7 +320,7 @@ void loop() {
     for (int i = 0; i < 3; i++) {
       do {
         delay(100);
-      } while (getDistance() > 25);
+      } while (getDistance() < 15);
     }
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_2, 230);
@@ -369,7 +363,7 @@ void loop() {
       delay(1);
     }
     if((lineCheck1 < LOWVALUE) && (lineCheck1 > HIGHVALUE) && (lineCheck2 < LOWVALUE) && (lineCheck2 > HIGHVALUE) && (lineCheck3 < LOWVALUE) && (lineCheck3 > HIGHVALUE) && (lineCheck4 < LOWVALUE) && (lineCheck4 > HIGHVALUE) &&
-  (lineCheck5 < LOWVALUE) && (lineCheck5 > HIGHVALUE) && (lineCheck6 < LOWVALUE) && (lineCheck6 > HIGHVALUE) && (lineCheck7 < LOWVALUE) && (lineCheck7 > HIGHVALUE) && (lineCheck8 < LOWVALUE) && (lineCheck8 > HIGHVALUE))
+      (lineCheck5 < LOWVALUE) && (lineCheck5 > HIGHVALUE) && (lineCheck6 < LOWVALUE) && (lineCheck6 > HIGHVALUE) && (lineCheck7 < LOWVALUE) && (lineCheck7 > HIGHVALUE) && (lineCheck8 < LOWVALUE) && (lineCheck8 > HIGHVALUE))
     analogWrite(MOTOR_B_2, 0);
     analogWrite(MOTOR_A_2, 0);
     analogWrite(MOTOR_B_2, 200);
@@ -377,8 +371,8 @@ void loop() {
     delay(500);
 
     do {
-      analogWrite(MOTOR_B_2, 150);
-      analogWrite(MOTOR_A_2, 0);
+      analogWrite(MOTOR_B_2, 220);
+      analogWrite(MOTOR_A_1, 255);
       if (analogRead(LINE_SENSOR[6]) > LINE) {
         break;
       }
