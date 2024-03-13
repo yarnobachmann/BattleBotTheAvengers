@@ -19,7 +19,7 @@ const int echoPin = 8; // Pin for the ultrasonic sensor
 
 const int LOWVALUE = 600; // Value for white
 const int LOWVALUEUNIQUE = 600; 
-const int HIGHVALUE = 1000; // Value for black
+const int HIGHVALUE = 1005; // Value for black
 
 // Variables for the last used values of the motors
 int lastValueA1 = 0;
