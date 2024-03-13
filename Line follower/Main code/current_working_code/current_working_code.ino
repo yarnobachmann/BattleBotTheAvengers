@@ -1,4 +1,4 @@
-#include <Adafruit_NeoPixel.h>
+#include <Adafruit_NeoPixel.h> // Library so the neo pixels work
 
 const int NEO_PIXEL_PIN = 7; // neopixel pin
 const int NEO_PIXEL_COUNT = 4; // amount of neopixel lights
@@ -9,30 +9,29 @@ const int MOTOR_A_2 = 10; // Left wheel forwards
 const int MOTOR_B_1 = 6; // Right wheel backwards
 const int MOTOR_B_2 = 5; // Right wheel forwards
 
-const int gripperPin = 9;
-const int GRIPPER_OPEN = 1800;
-const int GRIPPER_CLOSED = 950;
-const int SERVO_INTERVAL = 20;
-const int GRIPPER_TOGGLE = 1000;
-bool gripperOpen = true;
+const int gripperPin = 9; 
+const int GRIPPER_OPEN = 1800; 
+const int GRIPPER_CLOSED = 950; 
+bool gripperOpen = true; 
 
-const int trigPin = 4;
-const int echoPin = 8;
+const int trigPin = 4; 
+const int echoPin = 8; 
 
-const int LOWVALUE = 600;
-const int LOWVALUEUNIQUE = 600;
-const int HIGHVALUE = 1000;
+const int LOWVALUE = 550; 
+const int LOWVALUEUNIQUE = 550; 
+const int HIGHVALUE = 1000; 
 
-int lastValueA1 = 0;
+int lastValueA1 = 0; 
 int lastValueA2 = 0;
 int lastValueB1 = 0;
 int lastValueB2 = 0;
 
+
 int lineValues[] = {0, 0, 0, 0, 0, 0};
 
-int LINE = 900;
+int LINE = 900; 
 
-const int LINE_SENSOR[8] = {A0, A1, A2, A3, A4, A5, A6, A7};
+const int LINE_SENSOR[8] = {A0, A1, A2, A3, A4, A5, A6, A7}; 
 
 // Brown, 0th sensor
 // Orange, 1st sensor
@@ -49,6 +48,7 @@ unsigned long currentTime = 0; // Variable to store the current time
 float duration;
 float distance;
 
+// Variables for line check
 int lineCheck1 = 0;
 int lineCheck2 = 0;
 int lineCheck3 = 0;
@@ -58,11 +58,10 @@ int lineCheck6 = 0;
 int lineCheck7 = 0;
 int lineCheck8 = 0;
 
-bool START = false;
+bool START = false; // Set the boolean of start to false
 
-unsigned long previousMillis = 0;
-const long interval = 250;
-
+unsigned long previousMillis = 0; // Set the value of previous millis to 0
+const long interval = 250; // Set the interval to 250ms
 
 
 void setup() {
@@ -79,11 +78,12 @@ void setup() {
   pinMode(MOTOR_B_1, OUTPUT);
   pinMode(MOTOR_B_2, OUTPUT);
 
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < 8; i++) { 
     pinMode(LINE_SENSOR[i], INPUT);
   }
 }
 
+// Function to set the neo pixels at the start
 void color0() {
   pixels.begin();
   pixels.setPixelColor(0, pixels.Color(75, 255, 0));
@@ -93,6 +93,7 @@ void color0() {
   pixels.show();
 }
 
+// Function to switch the neo light colors around
 void colors() {
   unsigned long currentMillis = millis();
 
@@ -127,6 +128,7 @@ void start() {
     
   }
 }
+
 
 void lineFollower() {
   lineCheck1 = analogRead(LINE_SENSOR[0]);

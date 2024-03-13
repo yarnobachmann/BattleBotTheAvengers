@@ -9,18 +9,19 @@ const int MOTOR_A_2 = 10; // Left wheel forwards
 const int MOTOR_B_1 = 6; // Right wheel backwards
 const int MOTOR_B_2 = 5; // Right wheel forwards
 
-const int gripperPin = 9;
-const int GRIPPER_OPEN = 1800;
-const int GRIPPER_CLOSED = 950;
-bool gripperOpen = true;
+const int gripperPin = 9; // Pin for the gripper
+const int GRIPPER_OPEN = 1800; // Pulse length to open gripper
+const int GRIPPER_CLOSED = 950; // Pulse length to close gripper
+bool gripperOpen = true; // Set boolean for gripper open to true
 
-const int trigPin = 4;
-const int echoPin = 8;
+const int trigPin = 4; // Pin for the ultrasonic sensor
+const int echoPin = 8; // Pin for the ultrasonic sensor
 
-const int LOWVALUE = 600;
-const int LOWVALUEUNIQUE = 600;
-const int HIGHVALUE = 1000;
+const int LOWVALUE = 600; // Value for white
+const int LOWVALUEUNIQUE = 600; 
+const int HIGHVALUE = 1000; // Value for black
 
+// Variables for the last used values of the motors
 int lastValueA1 = 0;
 int lastValueA2 = 0;
 int lastValueB1 = 0;
@@ -28,9 +29,9 @@ int lastValueB2 = 0;
 
 int lineValues[] = {0, 0, 0, 0, 0, 0};
 
-int LINE = 900;
+int LINE = 900; // Set the value of the line to 900
 
-const int LINE_SENSOR[8] = {A0, A1, A2, A3, A4, A5, A6, A7};
+const int LINE_SENSOR[8] = {A0, A1, A2, A3, A4, A5, A6, A7}; // Array for the line sensor pins
 
 // Brown, 0th sensor
 // Orange, 1st sensor
@@ -46,6 +47,7 @@ unsigned long currentTime = 0; // Variable to store the current time
 
 float duration;
 float distance;
+
 
 int lineCheck1 = 0;
 int lineCheck2 = 0;
@@ -82,6 +84,7 @@ void setup() {
   }
 }
 
+// Function to set the neo pixels at the start
 void color0() {
   pixels.begin();
   pixels.setPixelColor(0, pixels.Color(75, 255, 0));
@@ -91,6 +94,7 @@ void color0() {
   pixels.show();
 }
 
+// Function to switch the neo light colors around
 void colors() {
   unsigned long currentMillis = millis();
 
