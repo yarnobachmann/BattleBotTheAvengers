@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
+#include <Wire.h>
 #include <Adafruit_LSM6DS3TRC.h>
 #ifdef __AVR__
   #include <avr/power.h>
@@ -10,7 +11,7 @@
 //-----------------------------------[Predeclare functions]-------------------------
 
 void setPixelColor(int pixel, uint8_t red, uint8_t green, uint8_t blue);
-void setMotors(double LFWD, double LBACK, double RFWD, double RBACK);
+void setMotors(int LFWD, int LBACK, int RFWD, int RBACK);
 void brakeLight();
 void forwardLight();
 void leftLight();
@@ -57,12 +58,13 @@ void servo(int pulse);
 #define TRIGGER_PIN 8 // HC-SR04 trigger pin
 #define ECHO_PIN 4  // HC-SR04 echo pin
 
-const int numberOfSensors = 8; // Number of sensors used
-int sensorPins[numberOfSensors] = {A7 ,A6, A5, A4, A3, A2, A1, A0}; // Analog pins for the sensors
+const int numberOfSensors = 6; // Number of sensors used
+int sensorPins[numberOfSensors] = {A5, A4, A3, A2, A1, A0}; // Analog pins for the sensors
 int sensorValues[numberOfSensors]; // Array to store the sensor values
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 Adafruit_LSM6DS3TRC lsm6ds3trc;
+Adafruit_LSM6DS3TRC lsm6ds3;
 
 //-----------------------------------[Variables]---------------------------------
 
@@ -101,14 +103,13 @@ void setup() {
   digitalWrite(SERVO_PIN, LOW);
   pinMode(GRIPPER_PIN, OUTPUT);
   digitalWrite(GRIPPER_PIN, LOW);
-  for(int i = 0;i<=7;i++) 
+  for(int i = 0;i<=numberOfSensors;i++) 
   {
     pinMode(sensorPins[i], INPUT);
   }
   attachInterrupt(digitalPinToInterrupt(MOTOR_LEFT_READ), leftPulseInterrupt, CHANGE);
   attachInterrupt(digitalPinToInterrupt(MOTOR_RIGHT_READ), rightPulseInterrupt, CHANGE);
   Serial.begin(9600);
-  gripper(GRIPPER_OPEN);
 
   while (!Serial)
     delay(1000); // will pause Zero, Leonardo, etc until serial console opens
@@ -143,7 +144,7 @@ void setup() {
     break;
   }
 
-    // lsm6ds3trc.setGyroRange(LSM6DS_GYRO_RANGE_250_DPS);
+  // lsm6ds3trc.setGyroRange(LSM6DS_GYRO_RANGE_250_DPS);
   Serial.print("Gyro range set to: ");
   switch (lsm6ds3trc.getGyroRange()) {
   case LSM6DS_GYRO_RANGE_125_DPS:
@@ -243,80 +244,63 @@ void setup() {
 
   lsm6ds3trc.configInt1(false, false, true); // accelerometer DRDY on INT1
   lsm6ds3trc.configInt2(false, true, false); // gyro DRDY on INT2
+  lookStraight();
 }
 
 //-----------------------------------[Loop function]----------------------------
 
 void loop() {
-  // Get a new normalized sensor event
+  gripperToggle();
+
+  // Get sensor events
   sensors_event_t accel;
   sensors_event_t gyro;
   sensors_event_t temp;
   lsm6ds3trc.getEvent(&accel, &gyro, &temp);
 
-  Serial.print(temp.temperature);
-  Serial.print(" Temps,");
+  // Calculate the tilt angle based on the accelerometer data
+  double tiltAngle = atan2(accel.acceleration.y, accel.acceleration.z) * (180.0 / PI);
 
-  Serial.print(accel.acceleration.x);
-  Serial.print(" Accel.y,"); Serial.print(accel.acceleration.y);
-  Serial.print(" Accel.z,"); Serial.print(accel.acceleration.z);
-  Serial.print(",");
+  // Use proportional control to adjust motor speeds based on tilt angle
+  double correctionFactor = 0.05;  // Adjust this value for the desired correction speed
+  double correction = tiltAngle * correctionFactor;
 
-  Serial.print(gyro.gyro.x);
-  Serial.print(" Gyro.y,"); Serial.print(gyro.gyro.y);
-  Serial.print(" Gyro.z,"); Serial.print(gyro.gyro.z);
-  Serial.println();
-  delayMicroseconds(10000);
+  // Adjust the motor speeds based on the correction
+  int leftSpeed = 255 - correction;
+  int rightSpeed = 255 - correction;
 
-  gripper(GRIPPER_OPEN);
+  // Limit the motor speeds to the valid range (0-255)
+  leftSpeed = constrain(leftSpeed, 0, 255);
+  rightSpeed = constrain(rightSpeed, 0, 255);
 
-  // Measure distance
-  long distance = measureDistance();
-  // Read reflection sensor values
-  for (int i = 0; i < numberOfSensors; i++) {
-    sensorValues[i] = analogRead(sensorPins[i]);
-  }
-  // Print reflection sensor values to Serial Monitor
-  Serial.print("Reflection Sensor Values: ");
-  for (int i = 0; i < numberOfSensors; i++) {
-    Serial.print(sensorValues[i]);
-    Serial.print(" ");
-  }
-  Serial.println();
-  // Calibrate to drive straight during the initial setup
-  if (!calibrated) {
-    calibrateToDriveStraight();
-    calibrated = true;
-  }
- // Check for obstacles
-  if (distance <= stopDistance) {
-    driveStop();
-    // Look right with delay
-    lookRight();
-    delay(1000);
-    // Measure distance again after looking left
-    distance = measureDistance();
-    // If there is still an obstacle on the left, look right and drive right
-    if (distance <= stopDistance) {
-      lookLeft();
-      delay(1000);
-    } else {
-      // Move backward if both interrupts are low
-      if (interruptLeft == 0 && interruptRight == 0) {
-        driveBack(2);
-      } else {
-        // Move forward if no obstacle
-        driveForward(2);
-      }
+  // Drive the robot with the adjusted motor speeds
+  setMotors(leftSpeed, 0, rightSpeed, 0);
+  // Check if the robot is stuck based on overall angular velocity magnitude
+  double angularVelocityMagnitudeThreshold = 0.06;  // Adjust this threshold based on your robot's behavior
+  double angularVelocityMagnitude = sqrt(pow(gyro.gyro.x, 2) + pow(gyro.gyro.y, 2) + pow(gyro.gyro.z, 2));
+  Serial.println(angularVelocityMagnitude);
+  // Introduce a timer to avoid constant back and forth
+  static unsigned long stuckTimer = 0;
+  static bool isStuck = false;
+  unsigned long currentTime = millis();
+
+  if (angularVelocityMagnitude < angularVelocityMagnitudeThreshold) {
+    if (!isStuck) {
+      // Start the timer when the robot first appears stuck
+      stuckTimer = currentTime;
+      isStuck = true;
+    } else if (currentTime - stuckTimer >= 2000) {
+      // If the robot has been stuck for more than 2 seconds, drive backward
+      setMotors(0, leftSpeed, 0, rightSpeed);
+      delay(500);
+      isStuck = false;  // Reset the stuck flag
     }
-    // Reset interrupts after processing
-    interruptLeft = 0;
-    interruptRight = 0;
   } else {
-    // Move forward if no obstacle
-    driveForward(2);
+    // Reset the timer if the robot is not stuck
+    isStuck = false;
   }
-  gripper(GRIPPER_CLOSED);
+
+  delay(10);  
 }
 
 //-----------------------------------[Neopixel]-------------------------------
@@ -416,26 +400,62 @@ void calibrateToDriveStraight() {
 }
 
 // Sets motor power to input
-void setMotors(double LFWD, double LBACK, double RFWD, double RBACK) {
-  analogWrite(MOTOR_LEFT_FORWARD,   round(LFWD * leftOffset));
-  analogWrite(MOTOR_LEFT_BACKWARD,  round(LBACK * leftOffset));
-  analogWrite(MOTOR_RIGHT_FORWARD,  round(RFWD * rightOffset));
-  analogWrite(MOTOR_RIGHT_BACKWARD, round(RBACK * rightOffset));
+void setMotors(int LFWD, int LBACK, int RFWD, int RBACK) {
+  analogWrite(MOTOR_LEFT_FORWARD,   constrain(LFWD, 0, 255));
+  analogWrite(MOTOR_LEFT_BACKWARD,  constrain(LBACK, 0, 255));
+  analogWrite(MOTOR_RIGHT_FORWARD,  constrain(RFWD, 0, 255));
+  analogWrite(MOTOR_RIGHT_BACKWARD, constrain(RBACK, 0, 255));
 }
 
 //-----------------------------------[Drive functions]------------------------
 
-// Rotate left at 0-2 speed
 void driveLeft(int speed) {
-  leftLight();
-  setMotors(0, speed, speed, 0);
+  // Adjust this value for the desired rotation speed
+  double rotationSpeed = 0.5;
+
+  // Read gyro data
+  sensors_event_t gyro;
+  lsm6ds3trc.getEvent(NULL, &gyro, NULL);
+
+  // Calculate the rotation angle
+  double rotationAngle = gyro.gyro.z * 0.01;  // Adjust the factor based on your robot's behavior
+
+  // Apply rotation control
+  int leftSpeed = speed + rotationSpeed * rotationAngle;
+  int rightSpeed = speed - rotationSpeed * rotationAngle;
+
+  // Limit the motor speeds to the valid range (0-255)
+  leftSpeed = constrain(leftSpeed, 0, 255);
+  rightSpeed = constrain(rightSpeed, 0, 255);
+
+  // Drive the robot with the adjusted motor speeds
+  setMotors(leftSpeed, 0, rightSpeed, 0);
 }
 
-// Rotate right at 0-2 speed
+
 void driveRight(int speed) {
-  rightLight();
-  setMotors(speed, 0 , 0, speed);
+  // Adjust this value for the desired rotation speed
+  double rotationSpeed = 0.5;
+  
+  // Read gyro data
+  sensors_event_t gyro;
+  lsm6ds3trc.getEvent(NULL, &gyro, NULL);
+  
+  // Calculate the rotation angle
+  double rotationAngle = gyro.gyro.z * 0.01;  // Adjust the factor based on your robot's behavior
+  
+  // Apply rotation control
+  int leftSpeed = speed - rotationSpeed * rotationAngle;
+  int rightSpeed = speed + rotationSpeed * rotationAngle;
+  
+  // Limit the motor speeds to the valid range (0-255)
+  leftSpeed = constrain(leftSpeed, 0, 255);
+  rightSpeed = constrain(rightSpeed, 0, 255);
+  
+  // Drive the robot with the adjusted motor speeds
+  setMotors(leftSpeed, 0, 0, rightSpeed);
 }
+
 
 // Drive forwards at 0-2 speed
 void driveForward(int speed) {
