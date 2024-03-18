@@ -17,8 +17,8 @@ bool gripperOpen = true; // Set boolean for gripper open to true
 const int trigPin = 4; // Pin for the ultrasonic sensor
 const int echoPin = 8; // Pin for the ultrasonic sensor
 
-const int LOWVALUE = 600; // Value for white
-const int LOWVALUEUNIQUE = 600; 
+const int LOWVALUE = 550; // Value for white
+const int LOWVALUEUNIQUE = 550; 
 const int HIGHVALUE = 1005; // Value for black
 
 // Variables for the last used values of the motors
@@ -141,7 +141,7 @@ void lineFollower() {
       startTime = millis(); // Start the timer
     } else {
       currentTime = millis(); // Update the current time
-      if (currentTime - startTime >= 200) {
+      if (currentTime - startTime >= 150) {
         analogWrite(MOTOR_A_1, 255);
         analogWrite(MOTOR_A_2, 0);
         analogWrite(MOTOR_B_1, 255);
@@ -165,18 +165,18 @@ void lineFollower() {
       } 
     } 
   }
-  else if((lineCheck1 > LOWVALUE) && (lineCheck1 < HIGHVALUE) && (lineCheck2 > LOWVALUE) && (lineCheck2 < HIGHVALUE) && (lineCheck3 > LOWVALUE) && (lineCheck3 < HIGHVALUE) && (lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE) && (lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE)){
+  else if ((lineCheck1 > LOWVALUE) && (lineCheck1 < HIGHVALUE) && (lineCheck2 > LOWVALUE) && (lineCheck2 < HIGHVALUE) && (lineCheck3 > LOWVALUE) && (lineCheck3 < HIGHVALUE) && (lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE) && (lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_2, 255);
     startTime = 0;
     delay(100);
-    lastValueA1 = 0;
-    lastValueA2 = 255;
+    lastValueA1 = 220;
+    lastValueA2 = 0;
     lastValueB1 = 0;
     lastValueB2 = 255;
   }
-  else if((lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE) && (lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE) && (lineCheck6 > LOWVALUE) && (lineCheck6 < HIGHVALUE) && (lineCheck7 > LOWVALUE) && (lineCheck7 < HIGHVALUE) && (lineCheck8 > LOWVALUE) && (lineCheck8 < HIGHVALUE)){
+  else if ((lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE) && (lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE) && (lineCheck6 > LOWVALUE) && (lineCheck6 < HIGHVALUE) && (lineCheck7 > LOWVALUE) && (lineCheck7 < HIGHVALUE) && (lineCheck8 > LOWVALUE) && (lineCheck8 < HIGHVALUE)){
     analogWrite(MOTOR_B_1, 0);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_2, 255);
@@ -184,10 +184,10 @@ void lineFollower() {
     delay(100);
     lastValueA1 = 0;
     lastValueA2 = 255;
-    lastValueB1 = 0;
-    lastValueB2 = 255;
+    lastValueB1 = 220;
+    lastValueB2 = 0;
   }
-  else if((lineCheck1 > LOWVALUE) && (lineCheck1 < HIGHVALUE)){
+  else if ((lineCheck1 > LOWVALUE) && (lineCheck1 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 0);
     analogWrite(MOTOR_B_2, 220);
     analogWrite(MOTOR_A_1, 255);
@@ -198,7 +198,7 @@ void lineFollower() {
     lastValueB1 = 0;
     lastValueB2 = 220;
   }
-  else if((lineCheck2 > LOWVALUE) && (lineCheck2 < HIGHVALUE)){
+  else if ((lineCheck2 > LOWVALUE) && (lineCheck2 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 80);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_1, 0);
@@ -210,7 +210,7 @@ void lineFollower() {
     lastValueB1 = 0;
     lastValueB2 = 255;
   }
-  else if((lineCheck3 > LOWVALUE) && (lineCheck3 < HIGHVALUE)){
+  else if ((lineCheck3 > LOWVALUE) && (lineCheck3 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 160);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_1, 0);
@@ -221,7 +221,18 @@ void lineFollower() {
     lastValueB1 = 0;
     lastValueB2 = 255;
   }
-  else if(((lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE)) || ((lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE))){
+  else if ((lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE)){
+    analogWrite(MOTOR_A_2, 255);
+    analogWrite(MOTOR_B_2, 255);
+    analogWrite(MOTOR_A_1, 0);
+    analogWrite(MOTOR_B_1, 0);
+    startTime = 0;
+    lastValueA1 = 0;
+    lastValueA2 = 255;
+    lastValueB1 = 0;
+    lastValueB2 = 220;
+  }
+  else if ((lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_1, 0);
@@ -370,8 +381,8 @@ void loop() {
       (lineCheck5 < LOWVALUE) && (lineCheck5 > HIGHVALUE) && (lineCheck6 < LOWVALUE) && (lineCheck6 > HIGHVALUE) && (lineCheck7 < LOWVALUE) && (lineCheck7 > HIGHVALUE) && (lineCheck8 < LOWVALUE) && (lineCheck8 > HIGHVALUE))
     analogWrite(MOTOR_B_2, 0);
     analogWrite(MOTOR_A_2, 0);
-    analogWrite(MOTOR_B_2, 200);
-    analogWrite(MOTOR_A_1, 200);
+    analogWrite(MOTOR_B_2, 220);
+    analogWrite(MOTOR_A_1, 255);
     delay(500);
 
     do {
