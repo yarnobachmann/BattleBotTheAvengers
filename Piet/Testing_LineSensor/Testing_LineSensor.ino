@@ -22,35 +22,28 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  for (int i = 0; i < 8; i++)
-  {
     followTheLine();
-  }
 }
 
 void followTheLine()
 {
-  if (analogRead(LIGHT_SENSOR[7]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[3]) > LIGHT_VALUE && analogRead(LIGHT_SENSOR[4]) > LIGHT_VALUE)
+  if (analogRead(LIGHT_SENSOR[7]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[6]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[7]) > LIGHT_VALUE && analogRead(LIGHT_SENSOR[0]) < LIGHT_VALUE)
   {
     turnLeft(245); 
   }
   else if (analogRead(LIGHT_SENSOR[3]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[4]) > LIGHT_VALUE)
   {
-    driveForward(255);
+    driveForward(210);
   }
   else if (analogRead(LIGHT_SENSOR[5]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[6]) > LIGHT_VALUE)
   {
-    turnLeft(160);
+    turnLeft(200);
   }
-  else if (analogRead(LIGHT_SENSOR[1]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[2]) > LIGHT_VALUE)
+  else if (analogRead(LIGHT_SENSOR[0]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[1]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[0]) > LIGHT_VALUE && analogRead(LIGHT_SENSOR[7]) < LIGHT_VALUE)
   {
-    turnRight(160);
+    turnRight(200);
   }
   else if (analogRead(LIGHT_SENSOR[8]) < LIGHT_VALUE)
-  {
-    turnRight(245);
-  }
-  else if (analogRead(LIGHT_SENSOR[3]) > LIGHT_VALUE && analogRead(LIGHT_SENSOR[4]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR [0]) > LIGHT_VALUE)
   {
     turnRight(245);
   }
