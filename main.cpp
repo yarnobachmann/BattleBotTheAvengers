@@ -250,7 +250,7 @@ void setup() {
 //-----------------------------------[Loop function]----------------------------
 
 void loop() {
-  gripperToggle();
+  // gripperToggle();
 
   // Get sensor events
   sensors_event_t accel;
@@ -289,9 +289,9 @@ void loop() {
       // Start the timer when the robot first appears stuck
       stuckTimer = currentTime;
       isStuck = true;
-    } else if (currentTime - stuckTimer >= 2000) {
+    } else if (currentTime - stuckTimer >= 1000) {
       // If the robot has been stuck for more than 2 seconds, drive backward
-      setMotors(0, leftSpeed, 0, rightSpeed);
+      setMotors(0, rightSpeed, 0, leftSpeed);
       delay(500);
       isStuck = false;  // Reset the stuck flag
     }
@@ -300,7 +300,7 @@ void loop() {
     isStuck = false;
   }
 
-  delay(10);  
+  
 }
 
 //-----------------------------------[Neopixel]-------------------------------

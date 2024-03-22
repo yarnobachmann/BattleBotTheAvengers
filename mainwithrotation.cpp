@@ -89,6 +89,10 @@ int leftOffset = 100;  // LeftOffset default value set to 100
 
 const int reflectionThreshold = 500; // Adjust this threshold based on your sensor's characteristics
 
+double wantedRotation = 0; // Variable to store the rotation value
+
+bool isDrivingForward = true; // Variable to store the direction of the robot
+
 //-----------------------------------[Gyro]-----------------------------------
 
 #define PI 3.1415926535897932384626433832795
@@ -138,6 +142,8 @@ void setup() {
   }
 
   Serial.println("LSM6DS3TR-C Found!");
+
+  lsm6ds3trc.setGyroRange(LSM6DS_GYRO_RANGE_125_DPS);
 
   // lsm6ds3trc.setAccelRange(LSM6DS_ACCEL_RANGE_2_G);
   Serial.print("Accelerometer range set to: ");
@@ -286,24 +292,24 @@ void loop() {
   delayMicroseconds(10000);
 
 
-  // // Measure distance
-  // long distance = measureDistance();
-  // // Read reflection sensor values
-  // for (int i = 0; i < numberOfSensors; i++) {
-  //   sensorValues[i] = analogRead(sensorPins[i]);
-  // }
-  // // Print reflection sensor values to Serial Monitor
-  // Serial.print("Reflection Sensor Values: ");
-  // for (int i = 0; i < numberOfSensors; i++) {
-  //   Serial.print(sensorValues[i]);
-  //   Serial.print(" ");
-  // }
-  // Serial.println();
-  // // Calibrate to drive straight during the initial setup
-  // if (!calibrated) {
-  //   calibrateToDriveStraight();
-  //   calibrated = true;
-  // }
+//   // Measure distance
+//   long distance = measureDistance();
+//   // Read reflection sensor values
+//   for (int i = 0; i < numberOfSensors; i++) {
+//     sensorValues[i] = analogRead(sensorPins[i]);
+//   }
+//   // Print reflection sensor values to Serial Monitor
+//   Serial.print("Reflection Sensor Values: ");
+//   for (int i = 0; i < numberOfSensors; i++) {
+//     Serial.print(sensorValues[i]);
+//     Serial.print(" ");
+//   }
+//   Serial.println();
+//   // Calibrate to drive straight during the initial setup
+//   if (!calibrated) {
+//     calibrateToDriveStraight();
+//     calibrated = true;
+//   }
 //  // Check for obstacles
 //   if (distance <= stopDistance) {
 //     driveStop();
@@ -337,7 +343,10 @@ void loop() {
   updateRotation(); // Update the rotation value
   Serial.println(rotationInDegrees); // Print the rotation value to Serial Monitor
 
-  turnToAngle(90);  // Turn to 90 degrees
+
+  
+  driveForward(2.55);
+  
 }
 
 //-----------------------------------[Neopixel]-------------------------------
@@ -457,10 +466,18 @@ void driveRight(int speed) {
   rightLight();
   setMotors(speed, 0 , 0, speed);
 }
-
-// Drive forwards at 0-2 speed
-void driveForward(int speed) {
-  setMotors(speed, 0 , speed, 0);
+// Rotate right at 0-2 speed
+void driveForward(double speed) {
+  if (abs(rotationInDegrees - wantedRotation) > 3)
+  {
+    if (isRightTurnFaster(wantedRotation)) {
+    setMotors(speed, 0, 1, 0);
+    } else {
+    setMotors(1, 0, speed, 0);
+    } 
+  } else {
+    setMotors(speed, 0, speed, 0);
+  }
   forwardLight(); // Turn on forward lights
 }
 
@@ -525,7 +542,7 @@ void lookLeft() {
   if (distance <= stopDistance) {
     lookStraight();
   } else {
-    driveLeft(2);
+    wantedRotation -= 90;
     lookStraight();
   }
 }
@@ -612,6 +629,7 @@ void turnToAngle(double wantedRotation)
     {
         driveLeft(speed);
     }
+    
 }
 
 bool isRightTurnFaster(double wantedRotation)
