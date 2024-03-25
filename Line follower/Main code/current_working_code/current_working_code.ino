@@ -10,16 +10,27 @@ const int MOTOR_B_1 = 6; // Right wheel backwards
 const int MOTOR_B_2 = 5; // Right wheel forwards
 
 const int gripperPin = 9; // Pin for the gripper
-const int GRIPPER_OPEN = 1800; // Pulse length to open gripper
-const int GRIPPER_CLOSED = 950; // Pulse length to close gripper
-bool gripperOpen = true; // Set boolean for gripper open to true
 
 const int trigPin = 4; // Pin for the ultrasonic sensor
 const int echoPin = 8; // Pin for the ultrasonic sensor
 
+const int LINE_SENSOR[8] = {A0, A1, A2, A3, A4, A5, A6, A7}; // Array for the line sensor pins
+// Brown, 0th sensor
+// Orange, 1st sensor
+// Yellow, 2nd sensor
+// Green, 3rd sensor
+// Blue, 4th sensor
+// Purple, 5th sensor
+// White, 6th sensor
+// Grey, 7th sensor
+
 const int LOWVALUE = 550; // Value for white
 const int LOWVALUEUNIQUE = 550; 
 const int HIGHVALUE = 1005; // Value for black
+
+const int GRIPPER_OPEN = 1800; // Pulse length to open gripper
+const int GRIPPER_CLOSED = 950; // Pulse length to close gripper
+bool gripperOpen = true; // Set boolean for gripper open to true
 
 // Variables for the last used values of the motors
 int lastValueA1 = 0;
@@ -30,17 +41,6 @@ int lastValueB2 = 0;
 int lineValues[] = {0, 0, 0, 0, 0, 0};
 
 int LINE = 900; // Set the value of the line to 900
-
-const int LINE_SENSOR[8] = {A0, A1, A2, A3, A4, A5, A6, A7}; // Array for the line sensor pins
-
-// Brown, 0th sensor
-// Orange, 1st sensor
-// Yellow, 2nd sensor
-// Green, 3rd sensor
-// Blue, 4th sensor
-// Purple, 5th sensor
-// White, 6th sensor
-// Grey, 7th sensor
 
 unsigned long startTime = 0; // Variable to store the start time
 unsigned long currentTime = 0; // Variable to store the current time

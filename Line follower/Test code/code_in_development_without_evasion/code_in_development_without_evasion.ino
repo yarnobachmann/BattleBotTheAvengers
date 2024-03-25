@@ -17,9 +17,9 @@ bool gripperOpen = true; // Set boolean for gripper open to true
 const int trigPin = 4; // Pin for the ultrasonic sensor
 const int echoPin = 8; // Pin for the ultrasonic sensor
 
-const int LOWVALUE = 600; // Value for white
-const int LOWVALUEUNIQUE = 600; 
-const int HIGHVALUE = 1003; // Value for black
+const int LOWVALUE = 550; // Value for white
+const int LOWVALUEUNIQUE = 550; 
+const int HIGHVALUE = 1005; // Value for black
 
 // Variables for the last used values of the motors
 int lastValueA1 = 0;
