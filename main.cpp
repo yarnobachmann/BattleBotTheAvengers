@@ -31,6 +31,8 @@ void rightPulseInterrupt();
 void gripperToggle();
 void gripper(int pulse); 
 void servo(int pulse); 
+void initializeGyro();
+void readLineSensor();
 
 //-----------------------------------[Declare pins]-------------------------------
 
@@ -59,8 +61,11 @@ void servo(int pulse);
 #define ECHO_PIN 4  // HC-SR04 echo pin
 
 const int numberOfSensors = 6; // Number of sensors used
-int sensorPins[numberOfSensors] = {A5, A4, A3, A2, A1, A0}; // Analog pins for the sensors
+int sensorPins[numberOfSensors] = {A1, A6, A7, A3, A2, A0}; // Analog pins for the sensors      
 int sensorValues[numberOfSensors]; // Array to store the sensor values
+#define SENSOR_INTERVAL  20  // time between pulse
+
+const int BLACK = 900;
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 Adafruit_LSM6DS3TRC lsm6ds3trc;
@@ -82,6 +87,8 @@ int interruptRight = 0;  // Default value for the right interrupt
 
 int rightOffset = 100;  // RightOffset default value set to 100
 int leftOffset = 100;  // LeftOffset default value set to 100
+
+bool hasStartEnded = false;
 
 const int reflectionThreshold = 500; // Adjust this threshold based on your sensor's characteristics
 
@@ -110,7 +117,275 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(MOTOR_LEFT_READ), leftPulseInterrupt, CHANGE);
   attachInterrupt(digitalPinToInterrupt(MOTOR_RIGHT_READ), rightPulseInterrupt, CHANGE);
   Serial.begin(9600);
+  initializeGyro();
+  lookStraight();
+}
 
+//-----------------------------------[Loop function]----------------------------
+
+void loop() {
+  // gripperToggle();
+  if (!hasStartEnded)
+  {
+    gripper(GRIPPER_OPEN);
+    hasStartEnded = true;
+  }
+  
+  
+  readLineSensor();
+  // Get sensor events
+  // sensors_event_t accel;
+  // sensors_event_t gyro;
+  // sensors_event_t temp;
+  // lsm6ds3trc.getEvent(&accel, &gyro, &temp);
+
+  // // Calculate the tilt angle based on the accelerometer data
+  // double tiltAngle = atan2(accel.acceleration.y, accel.acceleration.z) * (180.0 / PI);
+
+  // // Use proportional control to adjust motor speeds based on tilt angle
+  // double correctionFactor = 0.05;  // Adjust this value for the desired correction speed
+  // double correction = tiltAngle * correctionFactor;
+
+  // // Adjust the motor speeds based on the correction
+  // int leftSpeed = 255 - correction;
+  // int rightSpeed = 255 - correction;
+
+  // // Limit the motor speeds to the valid range (0-255)
+  // leftSpeed = constrain(leftSpeed, 0, 255);
+  // rightSpeed = constrain(rightSpeed, 0, 255);
+
+  // // Drive the robot with the adjusted motor speeds
+  // setMotors(leftSpeed, 0, rightSpeed, 0);
+  // // Check if the robot is stuck based on overall angular velocity magnitude
+  // double angularVelocityMagnitudeThreshold = 0.06;  // Adjust this threshold based on your robot's behavior
+  // double angularVelocityMagnitude = sqrt(pow(gyro.gyro.x, 2) + pow(gyro.gyro.y, 2) + pow(gyro.gyro.z, 2));
+  // Serial.println(angularVelocityMagnitude);
+  // // Introduce a timer to avoid constant back and forth
+  // static unsigned long stuckTimer = 0;
+  // static bool isStuck = false;
+  // unsigned long currentTime = millis();
+
+  // if (angularVelocityMagnitude < angularVelocityMagnitudeThreshold) {
+  //   if (!isStuck) {
+  //     // Start the timer when the robot first appears stuck
+  //     stuckTimer = currentTime;
+  //     isStuck = true;
+  //   } else if (currentTime - stuckTimer >= 1000) {
+  //     // If the robot has been stuck for more than 2 seconds, drive backward
+  //     setMotors(0, rightSpeed, 0, leftSpeed);
+  //     delay(500);
+  //     isStuck = false;  // Reset the stuck flag
+  //   }
+  // } else {
+  //   // Reset the timer if the robot is not stuck
+  //   isStuck = false;
+  // }
+}
+
+//-----------------------------------[Neopixel]-------------------------------
+
+// Set color for a specific Neopixel
+void setPixelColor(int pixel, uint8_t red, uint8_t green, uint8_t blue) {
+  strip.setPixelColor(pixel, strip.Color(red, green, blue));
+  strip.show();
+}
+
+//-----------------------------------[Gripper]--------------------------------
+
+void gripperToggle() {
+  static unsigned long timer;
+  static bool state;
+  if (millis() > timer) {
+    if (state == true) {
+      gripper(GRIPPER_OPEN);
+      state = false;
+    } else {
+      gripper(GRIPPER_CLOSED);
+      state = true;
+    }
+    timer = millis() + GRIPPER_TOGGLE;
+  }
+}
+
+void gripper(int pulse) {
+  static unsigned long timer;
+  static int pulse1;
+  if (pulse > 0) {
+    pulse1 = pulse;
+  }
+  if (millis() > timer) {
+    digitalWrite(GRIPPER_PIN, HIGH);
+    delayMicroseconds(pulse1);
+    digitalWrite(GRIPPER_PIN, LOW);
+    timer = millis() + GRIPPER_INTERVAL;
+  }
+}
+
+//-----------------------------------[Echo Servo]-----------------------------
+
+void servo(int pulse) {
+  static unsigned long timer;
+  static int pulse1;
+  if (pulse > 0) {
+    pulse1 = pulse;
+  }
+  if (millis() > timer) {
+    digitalWrite(SERVO_PIN, HIGH);
+    delayMicroseconds(pulse1);
+    digitalWrite(SERVO_PIN, LOW);
+    timer = millis() + SERVO_INTERVAL;
+  }
+}
+//-----------------------------------[Puls sensors]---------------------------
+
+void leftPulseInterrupt() {
+  noInterrupts();
+  interruptLeft++;
+  interrupts();
+}
+
+void rightPulseInterrupt() {
+  noInterrupts();
+  interruptRight++;
+  interrupts();
+}
+
+//-----------------------------------[Wheels motor]---------------------------
+
+void calibrateToDriveStraight() {
+  driveForward(2);
+  delay(5000);
+  driveStop();
+  // Stops the interrupts to prevent interference during calibration
+  noInterrupts();
+  // Determine the maximum and minimum pulses from left and right interrupts
+  double maxPulses = max(interruptLeft, interruptRight);
+  double minPulses = min(interruptLeft, interruptRight);
+  // Calculate the offset pulses as a percentage based on the minimum and maximum pulses
+  double offsetPulses = round((minPulses / maxPulses) * 100);
+  // Set the offsets for left and right motors based on the maximum pulses
+  rightOffset = (interruptRight == maxPulses) ? offsetPulses : 100;
+  leftOffset = (interruptLeft == maxPulses) ? offsetPulses : 100;
+  // Print calibration results to Serial Monitor
+  Serial.print("Left offset: ");
+  Serial.print(leftOffset);
+  Serial.print(" | Right offset: ");
+  Serial.println(rightOffset);
+  Serial.println(offsetPulses);
+  Serial.println(maxPulses);
+  Serial.println(minPulses);
+  // Re-enable interrupts 
+  interrupts();
+}
+
+// Sets motor power to input
+void setMotors(int LFWD, int LBACK, int RFWD, int RBACK) {
+  analogWrite(MOTOR_LEFT_FORWARD,   constrain(LFWD, 0, 255));
+  analogWrite(MOTOR_LEFT_BACKWARD,  constrain(LBACK, 0, 255));
+  analogWrite(MOTOR_RIGHT_FORWARD,  constrain(RFWD, 0, 255));
+  analogWrite(MOTOR_RIGHT_BACKWARD, constrain(RBACK, 0, 255));
+}
+
+//-----------------------------------[Drive functions]------------------------
+
+void driveLeft(int speed) {
+  setMotors(0, speed, speed, 0);
+  leftLight();
+}
+
+
+void driveRight(int speed) {
+  setMotors(speed, 0, 0, speed);
+  rightLight();
+}
+
+
+// Drive forwards at 0-2 speed
+void driveForward(int speed) {
+  setMotors(speed, 0 , speed, 0);
+  forwardLight(); // Turn on forward lights
+}
+
+// Drive backwards at 0-2 speed
+void driveBack(int speed) {
+  setMotors(0, speed, 0, speed);
+  brakeLight();
+}
+
+// Stop driving
+void driveStop() {
+  setMotors(0, 0, 0, 0);
+  brakeLight(); // Turn on brake lights
+}
+
+//-----------------------------------[Blinking lights]------------------------
+
+void brakeLight() {
+  // Set color for each Neopixel individually
+  setPixelColor(0, 0, 255, 0);  // Red for the first Neopixel
+  setPixelColor(1, 0, 255, 0);  // Red for the second Neopixel
+  setPixelColor(2, 0, 0, 0);    // Turn off other Neopixels
+  setPixelColor(3, 0, 0, 0);    // Turn off other Neopixels
+}
+
+void forwardLight() {
+  // Set color for each Neopixel individually
+  setPixelColor(0, 0, 0, 0);  // Turn off other Neopixels
+  setPixelColor(1, 0, 0, 0);  // Turn off other Neopixels
+  setPixelColor(2, 255, 0, 0);    // green for the 3th Neopixel
+  setPixelColor(3, 255, 0, 0);    // green for the 4th Neopixel
+}
+
+void leftLight() {
+  // Set color for each Neopixel individually
+  setPixelColor(0, 0, 0, 0);  // Turn off other Neopixels
+  setPixelColor(1, 0, 0, 0);  // Turn off other Neopixels
+  setPixelColor(2, 255, 0, 0);    // Turn off other Neopixels
+  setPixelColor(3, 80, 255, 0);    // Orange for the 4th Neopixel
+}
+
+void rightLight() {
+  // Set color for each Neopixel individually
+  setPixelColor(0, 0, 0, 0);  // Turn off other Neopixels
+  setPixelColor(1, 0, 0, 0);  // Turn off other Neopixels
+  setPixelColor(2, 80, 255, 0);    // Orange for the 3th Neopixel
+  setPixelColor(3, 255, 0, 0);    // Turn off other Neopixels
+}
+
+//-----------------------------------[Echo servo directions]------------------
+
+void lookStraight() {
+  servo(SERVO_MID_PULSE);
+}
+
+void lookLeft() {
+  servo(SERVO_MAX_PULSE);
+}
+
+void lookRight() {
+  servo(SERVO_MIN_PULSE);
+}
+
+//-----------------------------------[Echo sensor]------------------------
+
+long measureDistance()
+{
+  // Echo detection to measure the distance
+  long duration, distance;
+  digitalWrite(TRIGGER_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIGGER_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIGGER_PIN, LOW);
+  duration = pulseIn(ECHO_PIN, HIGH);
+  distance = duration * 0.034 / 2;
+  return distance;
+}
+
+//-----------------------------------[Gyro sensor]------------------------
+
+void initializeGyro()
+{
   while (!Serial)
     delay(1000); // will pause Zero, Leonardo, etc until serial console opens
 
@@ -244,318 +519,65 @@ void setup() {
 
   lsm6ds3trc.configInt1(false, false, true); // accelerometer DRDY on INT1
   lsm6ds3trc.configInt2(false, true, false); // gyro DRDY on INT2
-  lookStraight();
 }
 
-//-----------------------------------[Loop function]----------------------------
+//-----------------------------------[Line sensor]------------------------
 
-void loop() {
-  // gripperToggle();
+void readLineSensor() {
+  static unsigned long timer;
+  static unsigned long allBlackTimerStart = 0;
+  static bool gripperClosed = false;
 
-  // Get sensor events
-  sensors_event_t accel;
-  sensors_event_t gyro;
-  sensors_event_t temp;
-  lsm6ds3trc.getEvent(&accel, &gyro, &temp);
-
-  // Calculate the tilt angle based on the accelerometer data
-  double tiltAngle = atan2(accel.acceleration.y, accel.acceleration.z) * (180.0 / PI);
-
-  // Use proportional control to adjust motor speeds based on tilt angle
-  double correctionFactor = 0.05;  // Adjust this value for the desired correction speed
-  double correction = tiltAngle * correctionFactor;
-
-  // Adjust the motor speeds based on the correction
-  int leftSpeed = 255 - correction;
-  int rightSpeed = 255 - correction;
-
-  // Limit the motor speeds to the valid range (0-255)
-  leftSpeed = constrain(leftSpeed, 0, 255);
-  rightSpeed = constrain(rightSpeed, 0, 255);
-
-  // Drive the robot with the adjusted motor speeds
-  setMotors(leftSpeed, 0, rightSpeed, 0);
-  // Check if the robot is stuck based on overall angular velocity magnitude
-  double angularVelocityMagnitudeThreshold = 0.06;  // Adjust this threshold based on your robot's behavior
-  double angularVelocityMagnitude = sqrt(pow(gyro.gyro.x, 2) + pow(gyro.gyro.y, 2) + pow(gyro.gyro.z, 2));
-  Serial.println(angularVelocityMagnitude);
-  // Introduce a timer to avoid constant back and forth
-  static unsigned long stuckTimer = 0;
-  static bool isStuck = false;
-  unsigned long currentTime = millis();
-
-  if (angularVelocityMagnitude < angularVelocityMagnitudeThreshold) {
-    if (!isStuck) {
-      // Start the timer when the robot first appears stuck
-      stuckTimer = currentTime;
-      isStuck = true;
-    } else if (currentTime - stuckTimer >= 1000) {
-      // If the robot has been stuck for more than 2 seconds, drive backward
-      setMotors(0, rightSpeed, 0, leftSpeed);
-      delay(500);
-      isStuck = false;  // Reset the stuck flag
+  if (millis() > timer) {
+    // Read sensor values
+    for (int i = 0; i < numberOfSensors; i++) {
+      sensorValues[i] = analogRead(sensorPins[i]);
     }
-  } else {
-    // Reset the timer if the robot is not stuck
-    isStuck = false;
-  }
 
-  
-}
-
-//-----------------------------------[Neopixel]-------------------------------
-
-// Set color for a specific Neopixel
-void setPixelColor(int pixel, uint8_t red, uint8_t green, uint8_t blue) {
-  strip.setPixelColor(pixel, strip.Color(red, green, blue));
-  strip.show();
-}
-
-//-----------------------------------[Gripper]--------------------------------
-
-void gripperToggle() {
-  static unsigned long timer;
-  static bool state;
-  if (millis() > timer) {
-    if (state == true) {
-      gripper(GRIPPER_OPEN);
-      state = false;
-    } else {
-      gripper(GRIPPER_CLOSED);
-      state = true;
+    // Check if all sensors are black
+    bool allBlack = true;
+    for (int i = 0; i < numberOfSensors; i++) {
+      if (sensorValues[i] < BLACK) {
+        allBlack = false;
+        break;
+      }
     }
-    timer = millis() + GRIPPER_TOGGLE;
-  }
+
+    if (allBlack) {
+      // Increment the timer if all sensors are black
+      allBlackTimerStart += SENSOR_INTERVAL;
+    }
+
+    if (allBlackTimerStart >= 1000) {
+        // If all sensors have been black for more than 5 seconds and gripper is not already closed, close the gripper
+        gripper(GRIPPER_CLOSED);
+        gripperClosed = true;
+    }
+
+    //Print sensor values
+    // Serial.print("Sensor Values: ");
+    // for (int i = 0; i < numberOfSensors; i++) {
+    //   Serial.print(sensorValues[i]);
+    //   Serial.print(" ");
+    // }
+
+    if (sensorValues[2] >= BLACK || sensorValues[3] >= BLACK || sensorValues[4] >= BLACK || sensorValues[1] >= BLACK){
+      driveForward(200); //We start with slowest and then modify the speed to a decent speed
+      Serial.print("forward");
+      Serial.print(" ");
+    }
+    else if (sensorValues[5] >= BLACK){
+      driveRight(255);
+      Serial.print("right222");
+      Serial.print(" ");
+    }
+    else if (sensorValues[0] >= BLACK){
+      driveLeft(255);
+      Serial.print("left222");
+      Serial.print(" ");
+    }  
+    timer = millis() + SENSOR_INTERVAL;
+  } 
 }
 
-void gripper(int pulse) {
-  static unsigned long timer;
-  static int pulse1;
-  if (pulse > 0) {
-    pulse1 = pulse;
-  }
-  if (millis() > timer) {
-    digitalWrite(GRIPPER_PIN, HIGH);
-    delayMicroseconds(pulse1);
-    digitalWrite(GRIPPER_PIN, LOW);
-    timer = millis() + GRIPPER_INTERVAL;
-  }
-}
-
-//-----------------------------------[Echo Servo]-----------------------------
-
-void servo(int pulse) {
-  static unsigned long timer;
-  static int pulse1;
-  if (pulse > 0) {
-    pulse1 = pulse;
-  }
-  if (millis() > timer) {
-    digitalWrite(SERVO_PIN, HIGH);
-    delayMicroseconds(pulse1);
-    digitalWrite(SERVO_PIN, LOW);
-    timer = millis() + SERVO_INTERVAL;
-  }
-}
-//-----------------------------------[Puls sensors]---------------------------
-
-void leftPulseInterrupt() {
-  noInterrupts();
-  interruptLeft++;
-  interrupts();
-}
-
-void rightPulseInterrupt() {
-  noInterrupts();
-  interruptRight++;
-  interrupts();
-}
-
-//-----------------------------------[Wheels motor]---------------------------
-
-void calibrateToDriveStraight() {
-  driveForward(2);
-  delay(5000);
-  driveStop();
-  // Stops the interrupts to prevent interference during calibration
-  noInterrupts();
-  // Determine the maximum and minimum pulses from left and right interrupts
-  double maxPulses = max(interruptLeft, interruptRight);
-  double minPulses = min(interruptLeft, interruptRight);
-  // Calculate the offset pulses as a percentage based on the minimum and maximum pulses
-  double offsetPulses = round((minPulses / maxPulses) * 100);
-  // Set the offsets for left and right motors based on the maximum pulses
-  rightOffset = (interruptRight == maxPulses) ? offsetPulses : 100;
-  leftOffset = (interruptLeft == maxPulses) ? offsetPulses : 100;
-  // Print calibration results to Serial Monitor
-  Serial.print("Left offset: ");
-  Serial.print(leftOffset);
-  Serial.print(" | Right offset: ");
-  Serial.println(rightOffset);
-  Serial.println(offsetPulses);
-  Serial.println(maxPulses);
-  Serial.println(minPulses);
-  // Re-enable interrupts 
-  interrupts();
-}
-
-// Sets motor power to input
-void setMotors(int LFWD, int LBACK, int RFWD, int RBACK) {
-  analogWrite(MOTOR_LEFT_FORWARD,   constrain(LFWD, 0, 255));
-  analogWrite(MOTOR_LEFT_BACKWARD,  constrain(LBACK, 0, 255));
-  analogWrite(MOTOR_RIGHT_FORWARD,  constrain(RFWD, 0, 255));
-  analogWrite(MOTOR_RIGHT_BACKWARD, constrain(RBACK, 0, 255));
-}
-
-//-----------------------------------[Drive functions]------------------------
-
-void driveLeft(int speed) {
-  // Adjust this value for the desired rotation speed
-  double rotationSpeed = 0.5;
-
-  // Read gyro data
-  sensors_event_t gyro;
-  lsm6ds3trc.getEvent(NULL, &gyro, NULL);
-
-  // Calculate the rotation angle
-  double rotationAngle = gyro.gyro.z * 0.01;  // Adjust the factor based on your robot's behavior
-
-  // Apply rotation control
-  int leftSpeed = speed + rotationSpeed * rotationAngle;
-  int rightSpeed = speed - rotationSpeed * rotationAngle;
-
-  // Limit the motor speeds to the valid range (0-255)
-  leftSpeed = constrain(leftSpeed, 0, 255);
-  rightSpeed = constrain(rightSpeed, 0, 255);
-
-  // Drive the robot with the adjusted motor speeds
-  setMotors(leftSpeed, 0, rightSpeed, 0);
-}
-
-
-void driveRight(int speed) {
-  // Adjust this value for the desired rotation speed
-  double rotationSpeed = 0.5;
   
-  // Read gyro data
-  sensors_event_t gyro;
-  lsm6ds3trc.getEvent(NULL, &gyro, NULL);
-  
-  // Calculate the rotation angle
-  double rotationAngle = gyro.gyro.z * 0.01;  // Adjust the factor based on your robot's behavior
-  
-  // Apply rotation control
-  int leftSpeed = speed - rotationSpeed * rotationAngle;
-  int rightSpeed = speed + rotationSpeed * rotationAngle;
-  
-  // Limit the motor speeds to the valid range (0-255)
-  leftSpeed = constrain(leftSpeed, 0, 255);
-  rightSpeed = constrain(rightSpeed, 0, 255);
-  
-  // Drive the robot with the adjusted motor speeds
-  setMotors(leftSpeed, 0, 0, rightSpeed);
-}
-
-
-// Drive forwards at 0-2 speed
-void driveForward(int speed) {
-  setMotors(speed, 0 , speed, 0);
-  forwardLight(); // Turn on forward lights
-}
-
-// Drive backwards at 0-2 speed
-void driveBack(int speed) {
-  setMotors(0, speed, 0, speed);
-}
-
-// Stop driving
-void driveStop() {
-  setMotors(0, 0, 0, 0);
-  brakeLight(); // Turn on brake lights
-}
-
-//-----------------------------------[Blinking lights]------------------------
-
-void brakeLight() {
-  // Set color for each Neopixel individually
-  setPixelColor(0, 0, 255, 0);  // Red for the first Neopixel
-  setPixelColor(1, 0, 255, 0);  // Red for the second Neopixel
-  setPixelColor(2, 0, 0, 0);    // Turn off other Neopixels
-  setPixelColor(3, 0, 0, 0);    // Turn off other Neopixels
-}
-
-void forwardLight() {
-  // Set color for each Neopixel individually
-  setPixelColor(0, 0, 0, 0);  // Turn off other Neopixels
-  setPixelColor(1, 0, 0, 0);  // Turn off other Neopixels
-  setPixelColor(2, 255, 0, 0);    // green for the 3th Neopixel
-  setPixelColor(3, 255, 0, 0);    // green for the 4th Neopixel
-}
-
-void leftLight() {
-  // Set color for each Neopixel individually
-  setPixelColor(0, 0, 0, 0);  // Turn off other Neopixels
-  setPixelColor(1, 0, 0, 0);  // Turn off other Neopixels
-  setPixelColor(2, 255, 0, 0);    // Turn off other Neopixels
-  setPixelColor(3, 80, 255, 0);    // Orange for the 4th Neopixel
-}
-
-void rightLight() {
-  // Set color for each Neopixel individually
-  setPixelColor(0, 0, 0, 0);  // Turn off other Neopixels
-  setPixelColor(1, 0, 0, 0);  // Turn off other Neopixels
-  setPixelColor(2, 80, 255, 0);    // Orange for the 3th Neopixel
-  setPixelColor(3, 255, 0, 0);    // Turn off other Neopixels
-}
-
-//-----------------------------------[Echo servo directions]------------------
-
-void lookStraight() {
-  servo(SERVO_MID_PULSE);
-}
-
-void lookLeft() {
-  servo(SERVO_MAX_PULSE);
-  // Add a delay to give some time for the servo to move (you may need to adjust the delay duration)
-  delay(800);
-  // Measure distance
-  long distance = measureDistance();
-  // Check for obstacles
-  if (distance <= stopDistance) {
-    lookStraight();
-  } else {
-    driveLeft(2);
-    lookStraight();
-  }
-}
-
-// Function to close the gripper (move the servo to the closed position)
-void lookRight() {
-  servo(SERVO_MIN_PULSE);
-  delay(800);
-  // Measure distance
-  long distance = measureDistance();
-  // Check for obstacles
-  if (distance <= stopDistance) {
-    lookLeft();
-  } else {
-    driveRight(2);
-    lookStraight();
-  }
-}
-
-//-----------------------------------[Echo sensor]------------------------
-
-long measureDistance()
-{
-  // Echo detection to measure the distance
-  long duration, distance;
-  digitalWrite(TRIGGER_PIN, LOW);
-  delayMicroseconds(2);
-  digitalWrite(TRIGGER_PIN, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(TRIGGER_PIN, LOW);
-  duration = pulseIn(ECHO_PIN, HIGH);
-  distance = duration * 0.034 / 2;
-  return distance;
-}
