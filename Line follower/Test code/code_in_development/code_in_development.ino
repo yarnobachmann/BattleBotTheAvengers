@@ -49,6 +49,9 @@ const int LINE_SENSOR[8] = {A0, A1, A2, A3, A4, A5, A6, A7}; // Array for the li
 unsigned long startTime = 0; // Variable to store the start time
 unsigned long currentTime = 0; // Variable to store the current time
 
+unsigned long startTimer = 0;
+unsigned long currentTimer = 0;
+
 float duration;
 float distance;
 
@@ -311,72 +314,83 @@ float getDistance()
 
     duration = pulseIn(echoPin, HIGH);
     Serial.println(0.017 * duration);
-    return 0.017 * duration;
+    distance = 0.017 * duration;
+    return distance;
 
 }
 
-float getDistance1()
-{
-  unsigned long currentTime = millis();
-  if (currentTime - lastDistanceCheckTime >= distanceCheckInterval)
+void evadeObject(){
+  getDistance();
+
+  if (distance <= 20)
   {
-    lastDistanceCheckTime = currentTime;
+    analogWrite(MOTOR_A_1, 0);
+    analogWrite(MOTOR_A_2, 0);
+    analogWrite(MOTOR_B_1, 0);
+    analogWrite(MOTOR_B_2, 0);
 
-    digitalWrite(trigPin, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(trigPin, LOW);
+    Serial.println(distance);
 
-    duration = pulseIn(echoPin, HIGH);
-    Serial.println(0.017 * duration);
-    return 0.017 * duration;
+    delay(500);
+
+    analogWrite(MOTOR_A_1, 0);
+    analogWrite(MOTOR_A_2, 200);
+    analogWrite(MOTOR_B_1, 200);
+    analogWrite(MOTOR_B_2, 0);
+
+    delay(800);
+
+    analogWrite(MOTOR_A_1, 0);
+    analogWrite(MOTOR_A_2, 180);
+    analogWrite(MOTOR_B_1, 0);
+    analogWrite(MOTOR_B_2, 180);
+
+    delay(800);
+
+    analogWrite(MOTOR_A_1, 200);
+    analogWrite(MOTOR_A_2, 0);
+    analogWrite(MOTOR_B_1, 0);
+    analogWrite(MOTOR_B_2, 200);
+
+    delay(800);
+
+    analogWrite(MOTOR_A_1, 0);
+    analogWrite(MOTOR_A_2, 180);
+    analogWrite(MOTOR_B_1, 0);
+    analogWrite(MOTOR_B_2, 180);
+
+    delay(1000);
+
+    analogWrite(MOTOR_A_1, 200);
+    analogWrite(MOTOR_A_2, 0);
+    analogWrite(MOTOR_B_1, 0);
+    analogWrite(MOTOR_B_2, 200);
+
+    delay(800);
+
+    analogWrite(MOTOR_A_1, 0);
+    analogWrite(MOTOR_A_2, 180);
+    analogWrite(MOTOR_B_1, 0);
+    analogWrite(MOTOR_B_2, 180);
+
+    delay(50);
+
+    lastValueA1 = 0;
+    lastValueA2 = 200;
+    lastValueB1 = 0;
+    lastValueB2 = 200;
+
+
+    lineFollower();
   }
+
   else
   {
-    return distance;
+    lineFollower();
   }
+  startTimer = 0;
 }
 
-bool checkObstacle() {
-  float distance = getDistance();
-  return (distance < 25);
-}
-
-void avoidObstacle() {
-  analogWrite(MOTOR_A_1, 0);
-  analogWrite(MOTOR_A_2, 0);
-  analogWrite(MOTOR_B_1, 0);
-  analogWrite(MOTOR_B_2, 0);
-
-  analogWrite(MOTOR_A_1, 0);
-  analogWrite(MOTOR_A_2, 200);
-  analogWrite(MOTOR_B_1, 200);
-  analogWrite(MOTOR_B_2, 0);
-  
-  delay(300);
-
-  analogWrite(MOTOR_A_1, 0);
-  analogWrite(MOTOR_A_2, 180);
-  analogWrite(MOTOR_B_1, 0);
-  analogWrite(MOTOR_B_2, 180);
-
-  delay(2000);
-
-  analogWrite(MOTOR_A_1, 200);
-  analogWrite(MOTOR_A_2, 0);
-  analogWrite(MOTOR_B_1, 0);
-  analogWrite(MOTOR_B_2, 200);
-
-  delay(750);
-
-  analogWrite(MOTOR_A_1, 0);
-  analogWrite(MOTOR_A_2, 180);
-  analogWrite(MOTOR_B_1, 0);
-  analogWrite(MOTOR_B_2, 180);
-
-  
-  
-  lineFollower();
-}
 
 int average(int numbers[], int size)
 {
@@ -391,21 +405,21 @@ int average(int numbers[], int size)
 
 void loop() {  
   color0();
-  
+  delay(15);
   if (START) {
-    if (checkObstacle()) {
-      if(afstandChecked >= 2)
-      {
-        avoidObstacle();
-        afstandChecked = 0;
-      } else {
-        afstandChecked++;
-      }
+    if (startTimer == 0) {
+      startTime = millis(); // Start the timer
     } else {
-      lineFollower();
-      afstandChecked = 0;
-    }
-  } else {
+      currentTimer = millis(); // Update the current time
+      if (currentTimer - startTimer >= 150) {
+        evadeObject();
+        } else {
+          lineFollower();
+          startTimer = 0;
+        }
+      }
+   }
+   else {
     getDistance();
 
     for (int i = 0; i < 3; i++) {
