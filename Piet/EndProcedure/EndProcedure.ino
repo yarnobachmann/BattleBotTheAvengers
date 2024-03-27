@@ -18,6 +18,8 @@ unsigned long endingTimer = 0;
 
 void setup() {
   // put your setup code here, to run once:
+  pinMode(GRIPPER_PIN, OUTPUT);
+  digitalWrite(GRIPPER_PIN, LOW);
   pinMode(MOTOR_LEFT_BACKWARD, OUTPUT);
   pinMode(MOTOR_LEFT_FORWARD, OUTPUT);
   pinMode(MOTOR_RIGHT_BACKWARD, OUTPUT);

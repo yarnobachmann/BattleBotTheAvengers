@@ -23,8 +23,7 @@ Adafruit_NeoPixel pixels(NUMPIXELS, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
 int distance;
 const int LIGHT_SENSOR[8] = {A0, A1, A2, A3, A4, A5, A6, A7};
-int colorValues[] = {0, 0, 0, 0, 0, 0};
-int LIGHT_VALUE  =   850;  // Light value at the beginning
+int LIGHT_VALUE  =   700;  // Light value at the beginning
 
 long currentMillis;
 bool currentLightState = false;
@@ -168,56 +167,82 @@ void motorStop()
 
 void start()
 {
-for (int i = 0; i < 3; i++){
-  do{
-    digitalWrite(TRIG_PIN, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(TRIG_PIN, LOW);
-    
-    long duration = pulseIn(ECHO_PIN, HIGH);
-    distance = duration * 0.034 / 2; // Bereken de afstand in centimeters
-      Serial.println(distance);
+  Serial.print("Current LIGHT_VALUE: ");
+  Serial.println(LIGHT_VALUE);
   
-  } while(distance > 24);
-  }
-  waitLights();
-  startLights();
-  driveForward(255);
+  int blackLineSum = 0;
+  int blackLineCount = 0;
   
-  int countBlackLines = 0;
-  while(countBlackLines < 4){
-    while (true){
-      if (analogRead(LIGHT_SENSOR[1]) > LIGHT_VALUE){
-        break;
-      }
-    }
-    while (true){
-      if (analogRead(LIGHT_SENSOR[1]) < LIGHT_VALUE){
-        break;
-      }
-    }
-    countBlackLines++; 
-  }
-  motorStop();
-
-  for (int i = 0; i < 100; i++)
+  for (int i = 0; i < 3; i++)
   {
-    delay(10);
-    servo(GRIPPER_CLOSED);
+    do
+    {
+      digitalWrite(TRIG_PIN, HIGH);
+      delayMicroseconds(10);
+      digitalWrite(TRIG_PIN, LOW);
+    
+      long duration = pulseIn(ECHO_PIN, HIGH);
+      distance = duration * 0.034 / 2; // Bereken de afstand in centimeters
+    }  
+      while(distance > 24);
   }
-
-  turnLeft(200);
-  delay(500);
-  while(true){
-    if(analogRead(LIGHT_SENSOR[4]) > LIGHT_VALUE){
-      break;
+    waitLights();
+    startLights();
+    driveForward(255);
+  
+    while(blackLineCount < 4)
+    {
+      while (true)
+      {
+        if (analogRead(LIGHT_SENSOR[3]) > LIGHT_VALUE)
+        {
+          break;
+        }
+      }
+      while (true)
+      {
+        if (analogRead(LIGHT_SENSOR[3]) < LIGHT_VALUE)
+        {
+          break;
+        }
+      }
+        blackLineSum += getAverageLightValue();    
+        blackLineCount++; 
     }
-  }
+      motorStop();
+
+     LIGHT_VALUE = blackLineSum / blackLineCount;
+
+     Serial.print("New LIGHT_VALUE: ");
+     Serial.println(LIGHT_VALUE);
+     for (int i = 0; i < 100; i++)
+     {
+        delay(10);
+        servo(GRIPPER_CLOSED);
+     }
+
+      turnLeft(200);
+      delay(500);
+      while(true)
+      {
+        if(analogRead(LIGHT_SENSOR[4]) > LIGHT_VALUE)
+        {
+          break;
+        }
+       }
   motorStop();
 }
 
 
-
+int getAverageLightValue()
+{
+  int sum = 0;
+  for (int i = 0; i < 8; i++)
+  {
+    sum += analogRead(LIGHT_SENSOR[i]);
+  }
+  return sum / 8;
+}
 
 // Pixel 0 is links achter
 // Pixel 1 is rechts achter
