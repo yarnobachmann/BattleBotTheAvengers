@@ -11,10 +11,23 @@
 #define   MOTOR_RIGHT_FORWARD   5     // Motor Pin 
 #define   MOTOR_AFWIJKING       6     // Afwijking van de motor (moet nog in het Engels) 
 
+#include <Adafruit_NeoPixel.h>
+
+// NeoPixel setup
+#define NEOPIXEL_PIN     13  // Define the pin connected to NeoPixels
+#define NUMPIXELS        4  // Number of NeoPixels
+
+Adafruit_NeoPixel pixels(NUMPIXELS, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
+
+
+
 int distance;
 const int LIGHT_SENSOR[8] = {A0, A1, A2, A3, A4, A5, A6, A7};
 int colorValues[] = {0, 0, 0, 0, 0, 0};
 int LIGHT_VALUE  =   850;  // Light value at the beginning
+
+long currentMillis;
+bool currentLightState = false;
 
 unsigned long previousMillis = 0;
 const long interval = 100; // Interval in milliseconden
@@ -28,6 +41,7 @@ void setup() {
   pinMode(MOTOR_RIGHT_FORWARD, OUTPUT);
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
+  pixels.begin();
 
   Serial.begin(9600);
 
@@ -35,14 +49,16 @@ void setup() {
   {
     pinMode(LIGHT_SENSOR[i], INPUT);
   }
+  stopLights();
   start();
 }
   
 
 void loop() {
   // put your main code here, to run repeatedly:
-  
+  forwardLights();
   followTheLine();
+  
 }
 
 void followTheLine()
@@ -164,8 +180,10 @@ for (int i = 0; i < 3; i++){
   
   } while(distance > 24);
   }
-  delay(2000);
+  waitLights();
+  startLights();
   driveForward(255);
+  
   int countBlackLines = 0;
   while(countBlackLines < 4){
     while (true){
@@ -196,4 +214,156 @@ for (int i = 0; i < 3; i++){
     }
   }
   motorStop();
+}
+
+
+
+
+// Pixel 0 is links achter
+// Pixel 1 is rechts achter
+// Pixel 2 is rechts voor
+// Pixel 3 is links voor
+// Kleurvolgerde is GRB
+
+
+void lightsOff(){
+  pixels.setPixelColor(0, pixels.Color(0, 0, 0));
+  pixels.setPixelColor(1, pixels.Color(0, 0, 0));
+  pixels.setPixelColor(2, pixels.Color(0, 0, 0));
+  pixels.setPixelColor(3, pixels.Color(0, 0, 0));
+  pixels.show();
+  delay(200);
+}
+
+
+void waitLights()
+{
+  pixels.setPixelColor(0, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(1, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(2, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(3, pixels.Color(0, 255, 0));
+  pixels.show();
+  delay(200);
+
+  pixels.setPixelColor(0, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(1, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(2, pixels.Color(0, 255, 0));
+  pixels.setPixelColor(3, pixels.Color(0, 0, 255));
+  pixels.show();
+  delay(200);
+
+  pixels.setPixelColor(0, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(1, pixels.Color(0, 255, 0));
+  pixels.setPixelColor(2, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(3, pixels.Color(0, 0, 255));
+  pixels.show();
+  delay(200);
+
+  pixels.setPixelColor(0, pixels.Color(0, 255, 0));
+  pixels.setPixelColor(1, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(2, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(3, pixels.Color(0, 0, 255));
+  pixels.show();
+  delay(200);
+
+  pixels.setPixelColor(0, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(1, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(2, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(3, pixels.Color(0, 255, 0));
+  pixels.show();
+  delay(200);
+
+  pixels.setPixelColor(0, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(1, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(2, pixels.Color(0, 255, 0));
+  pixels.setPixelColor(3, pixels.Color(0, 0, 255));
+  pixels.show();
+  delay(200);
+
+  pixels.setPixelColor(0, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(1, pixels.Color(0, 255, 0));
+  pixels.setPixelColor(2, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(3, pixels.Color(0, 0, 255));
+  pixels.show();
+  delay(200);
+
+  pixels.setPixelColor(0, pixels.Color(0, 255, 0));
+  pixels.setPixelColor(1, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(2, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(3, pixels.Color(0, 0, 255));
+  pixels.show();
+  delay(200);
+
+  pixels.setPixelColor(0, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(1, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(2, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(3, pixels.Color(0, 255, 0));
+  pixels.show();
+  delay(200);
+
+  pixels.setPixelColor(0, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(1, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(2, pixels.Color(0, 255, 0));
+  pixels.setPixelColor(3, pixels.Color(0, 0, 255));
+  pixels.show();
+  delay(200);
+
+  pixels.setPixelColor(0, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(1, pixels.Color(0, 255, 0));
+  pixels.setPixelColor(2, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(3, pixels.Color(0, 0, 255));
+  pixels.show();
+  delay(200);
+
+  pixels.setPixelColor(0, pixels.Color(0, 255, 0));
+  pixels.setPixelColor(1, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(2, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(3, pixels.Color(0, 0, 255));
+  pixels.show();
+  delay(200);
+}
+
+void forwardLights()
+{
+  if(millis() - currentMillis >= 200)
+  {
+    currentMillis = millis();
+    if(currentLightState)
+    {
+      pixels.setPixelColor(0, pixels.Color(0, 255, 0));
+      pixels.setPixelColor(1, pixels.Color(0, 0, 255));
+      pixels.setPixelColor(2, pixels.Color(255, 255, 255));
+      pixels.setPixelColor(3, pixels.Color(255, 255, 255));
+      pixels.show();
+      currentLightState = !currentLightState;
+    } 
+    else
+    {
+      pixels.setPixelColor(0, pixels.Color(0, 0, 255));
+      pixels.setPixelColor(1, pixels.Color(0, 255, 0));
+      pixels.setPixelColor(2, pixels.Color(255, 255, 255));
+      pixels.setPixelColor(3, pixels.Color(255, 255, 255));
+      pixels.show();
+      currentLightState = !currentLightState;
+
+    }
+  }
+}
+
+void startLights()
+{
+  pixels.setPixelColor(0, pixels.Color(0, 0, 0));
+  pixels.setPixelColor(1, pixels.Color(0, 0, 0));
+  pixels.setPixelColor(2, pixels.Color(255, 255, 255));
+  pixels.setPixelColor(3, pixels.Color(255, 255, 255));
+  pixels.show();
+}
+
+void stopLights()
+{
+  pixels.setPixelColor(0, pixels.Color(0, 255, 0));
+  pixels.setPixelColor(1, pixels.Color(0, 255, 0));
+  pixels.setPixelColor(2, pixels.Color(0, 255, 0));
+  pixels.setPixelColor(3, pixels.Color(0, 255, 0));
+  pixels.show();
 }
