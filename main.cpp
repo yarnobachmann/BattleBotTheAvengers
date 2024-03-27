@@ -1,11 +1,15 @@
 //-----------------------------------[Include libraries]----------------------------
 
 #include <Arduino.h>
+
 #include <Adafruit_NeoPixel.h>
+
 #include <Wire.h>
+
 #include <Adafruit_LSM6DS3TRC.h>
-#ifdef __AVR__
-  #include <avr/power.h>
+
+#ifdef __AVR__#include <avr/power.h>
+
 #endif
 
 //-----------------------------------[Predeclare functions]-------------------------
@@ -21,168 +25,231 @@ void driveRight(int speed);
 void driveForward(int speed);
 void driveBack(int speed);
 void driveStop();
-void lookStraight();
-void lookLeft();
-void lookRight();
-long measureDistance();
-void calibrateToDriveStraight();
-void leftPulseInterrupt();
-void rightPulseInterrupt();
-void gripperToggle();
-void gripper(int pulse); 
-void servo(int pulse); 
+void distanceReader();
+void distanceSensor();
+void distanceReaderRight();
+void distanceSensorRight();
+void gripper(int pulse);
 void initializeGyro();
 void readLineSensor();
+void playNote(float frequency, int duration);
+void defaultSpeakerValues();
+void channel();
 
 //-----------------------------------[Declare pins]-------------------------------
 
-#define PIN 13  // Digital pin connected to the Neopixel
+#define PIN 13 // Digital pin connected to the Neopixel
 #define NUMPIXELS 4 // Number of Neopixels in your strip
 
-#define MOTOR_LEFT_BACKWARD 12  // Motor pin A1
-#define MOTOR_LEFT_FORWARD  11  // Motor pin A2
-#define MOTOR_RIGHT_FORWARD 10  // Motor pin B1
-#define MOTOR_RIGHT_BACKWARD 9  // Motor pin B2
-#define MOTOR_LEFT_READ 2   // Arduino A0
-#define MOTOR_RIGHT_READ 3  // Arduino A1
+#define BUZZER 3
+
+#define MOTOR_LEFT_BACKWARD 12 // Motor pin A1
+#define MOTOR_LEFT_FORWARD 11 // Motor pin A2
+#define MOTOR_RIGHT_FORWARD 10 // Motor pin B1
+#define MOTOR_RIGHT_BACKWARD 9 // Motor pin B2
 
 #define GRIPPER_PIN 6 // gripper GR
 #define GRIPPER_OPEN 1600 // pulse length servo open
-#define GRIPPER_CLOSED  930 // pulse length servo closed
-#define GRIPPER_INTERVAL  20  // time between pulse
-#define GRIPPER_TOGGLE  1000  // toggle gripper every second
+#define GRIPPER_CLOSED 930 // pulse length servo closed
+#define GRIPPER_INTERVAL 20 // time between pulse
+#define GRIPPER_TOGGLE 1000 // toggle gripper every second
 
-#define SERVO_INTERVAL  20  // time between pulse
-#define SERVO_MIN_PULSE  250  // pulse length for -90 degrees
-#define SERVO_MID_PULSE  1400 // pulse length for 0 degrees
-#define SERVO_MAX_PULSE  2400 // pulse length for 90 degrees
-#define SERVO_PIN 5 // servo
+#define SERVO_MIN_PULSE 250 // pulse length for -90 degrees
+#define SERVO_MID_PULSE 1400 // pulse length for 0 degrees
+#define SERVO_MAX_PULSE 2400 // pulse length for 90 degrees
+
 #define TRIGGER_PIN 8 // HC-SR04 trigger pin
-#define ECHO_PIN 4  // HC-SR04 echo pin
+#define ECHO_PIN 4 // HC-SR04 echo pin
+#define TRIGGER_PIN_RIGHT 2 // HC-SR04 trigger pin
+#define ECHO_PIN_RIGHT 7 // HC-SR04 echo pin
+
+#define NOTE_B0 31
+#define NOTE_C1 33
+#define NOTE_CS1 35
+#define NOTE_D1 37
+#define NOTE_DS1 39
+#define NOTE_E1 41
+#define NOTE_F1 44
+#define NOTE_FS1 46
+#define NOTE_G1 49
+#define NOTE_GS1 52
+#define NOTE_A1 55
+#define NOTE_AS1 58
+#define NOTE_B1 62
+#define NOTE_C2 65
+#define NOTE_CS2 69
+#define NOTE_D2 73
+#define NOTE_DS2 78
+#define NOTE_E2 82
+#define NOTE_F2 87
+#define NOTE_FS2 93
+#define NOTE_G2 98
+#define NOTE_GS2 104
+#define NOTE_A2 110
+#define NOTE_AS2 117
+#define NOTE_B2 123
+#define NOTE_C3 131
+#define NOTE_CS3 139
+#define NOTE_D3 147
+#define NOTE_DS3 156
+#define NOTE_E3 165
+#define NOTE_F3 175
+#define NOTE_FS3 185
+#define NOTE_G3 196
+#define NOTE_GS3 208
+#define NOTE_A3 220
+#define NOTE_AS3 233
+#define NOTE_B3 247
+#define NOTE_C4 262
+#define NOTE_CS4 277
+#define NOTE_D4 294
+#define NOTE_DS4 311
+#define NOTE_E4 330
+#define NOTE_F4 349
+#define NOTE_FS4 370
+#define NOTE_G4 392
+#define NOTE_GS4 415
+#define NOTE_A4 440
+#define NOTE_AS4 466
+#define NOTE_B4 494
+#define NOTE_C5 523
+#define NOTE_CS5 554
+#define NOTE_D5 587
+#define NOTE_DS5 622
+#define NOTE_E5 659
+#define NOTE_F5 698
+#define NOTE_FS5 740
+#define NOTE_G5 784
+#define NOTE_GS5 831
+#define NOTE_A5 880
+#define NOTE_AS5 932
+#define NOTE_B5 988
+#define NOTE_C6 1047
+#define NOTE_CS6 1109
+#define NOTE_D6 1175
+#define NOTE_DS6 1245
+#define NOTE_E6 1319
+#define NOTE_F6 1397
+#define NOTE_FS6 1480
+#define NOTE_G6 1568
+#define NOTE_GS6 1661
+#define NOTE_A6 1760
+#define NOTE_AS6 1865
+#define NOTE_B6 1976
+#define NOTE_C7 2093
+#define NOTE_CS7 2217
+#define NOTE_D7 2349
+#define NOTE_DS7 2489
+#define NOTE_E7 2637
+#define NOTE_F7 2794
+#define NOTE_FS7 2960
+#define NOTE_G7 3136
+#define NOTE_GS7 3322
+#define NOTE_A7 3520
+#define NOTE_AS7 3729
+#define NOTE_B7 3951
+#define NOTE_C8 4186
+#define NOTE_CS8 4435
+#define NOTE_D8 4699
+#define NOTE_DS8 4978
+#define REST 0
 
 const int numberOfSensors = 6; // Number of sensors used
-int sensorPins[numberOfSensors] = {A1, A6, A7, A3, A2, A0}; // Analog pins for the sensors      
+int sensorPins[numberOfSensors] = {
+  A1,A6,A7,A3,A2,A0
+}; // Analog pins for the sensors      
 int sensorValues[numberOfSensors]; // Array to store the sensor values
-#define SENSOR_INTERVAL  20  // time between pulse
+#define SENSOR_INTERVAL 20 // time between pulse
 
 const int BLACK = 900;
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_RGB + NEO_KHZ800);
-Adafruit_LSM6DS3TRC lsm6ds3trc;
 Adafruit_LSM6DS3TRC lsm6ds3;
 
 //-----------------------------------[Variables]---------------------------------
 
-volatile unsigned long leftPulse = 0;  // Stores the pulse width of the left motor
-volatile unsigned long rightPulse = 0; // Stores the pulse width of the right motor
-
-unsigned long startTime;  // Variable to store the start time for calibration
-const int calibrationDuration = 5000;  // Calibration duration in milliseconds
-bool calibrated = false;  // Flag to check if calibration is done
+unsigned long startTime; // Variable to store the start time for calibration
+const int calibrationDuration = 5000; // Calibration duration in milliseconds
+bool calibrated = false; // Flag to check if calibration is done
 
 const int stopDistance = 10; // Distance threshold to stop the robot (in cm)
+const int minRightDistance = 5; // Distance threshold to stop the robot (in cm)
+const int maxRightDistance = 8; // Distance threshold to stop the robot (in cm)
 
-int interruptLeft = 0;  // Default value for the left interrupt
-int interruptRight = 0;  // Default value for the right interrupt
-
-int rightOffset = 100;  // RightOffset default value set to 100
-int leftOffset = 100;  // LeftOffset default value set to 100
+int rightOffset = 100; // RightOffset default value set to 100
+int leftOffset = 100; // LeftOffset default value set to 100
 
 bool hasStartEnded = false;
+bool startTrigger = false;
+bool continueRightSensor = true;
 
 const int reflectionThreshold = 500; // Adjust this threshold based on your sensor's characteristics
+
+long duration, distance; // Variables to store the duration and distance for the HC-SR04 sensor'
+
+float gyroX = 0.0;
+float gyroY = 0.0;
+float gyroZ = 0.0;
+
+bool gyroInitialized = false; // Flag to track if gyro has been initialized
+
+
 
 //-----------------------------------[Setup function]---------------------------
 
 void setup() {
-  strip.begin();  // Initialize the Neopixel strip
-  strip.show();   // Initialize all pixels to 'off'
-
-  pinMode(MOTOR_LEFT_FORWARD,   OUTPUT);
-  pinMode(MOTOR_LEFT_BACKWARD,  OUTPUT);
+  strip.begin(); // Initialize the Neopixel strip
+  strip.show(); // Initialize all pixels to 'off'
+  // Motor pins
+  pinMode(MOTOR_LEFT_FORWARD, OUTPUT);
+  pinMode(MOTOR_LEFT_BACKWARD, OUTPUT);
   pinMode(MOTOR_RIGHT_BACKWARD, OUTPUT);
-  pinMode(MOTOR_RIGHT_FORWARD,  OUTPUT);
-  pinMode(MOTOR_LEFT_READ,  INPUT);
-  pinMode(MOTOR_RIGHT_READ, INPUT);
+  pinMode(MOTOR_RIGHT_FORWARD, OUTPUT);
+  // Echo sensor pins
   pinMode(TRIGGER_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
-  pinMode(SERVO_PIN, OUTPUT);
-  digitalWrite(SERVO_PIN, LOW);
+  pinMode(TRIGGER_PIN_RIGHT, OUTPUT);
+  pinMode(ECHO_PIN_RIGHT, INPUT);
+  // Servo pins
   pinMode(GRIPPER_PIN, OUTPUT);
   digitalWrite(GRIPPER_PIN, LOW);
-  for(int i = 0;i<=numberOfSensors;i++) 
-  {
+  // Reflection sensor pins
+  for (int i = 0; i <= numberOfSensors; i++) {
     pinMode(sensorPins[i], INPUT);
   }
-  attachInterrupt(digitalPinToInterrupt(MOTOR_LEFT_READ), leftPulseInterrupt, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(MOTOR_RIGHT_READ), rightPulseInterrupt, CHANGE);
+
   Serial.begin(9600);
   initializeGyro();
-  lookStraight();
 }
 
 //-----------------------------------[Loop function]----------------------------
 
 void loop() {
   // gripperToggle();
-  if (!hasStartEnded)
-  {
-    gripper(GRIPPER_OPEN);
-    hasStartEnded = true;
-  }
-  
-  
-  readLineSensor();
-  // Get sensor events
-  // sensors_event_t accel;
-  // sensors_event_t gyro;
-  // sensors_event_t temp;
-  // lsm6ds3trc.getEvent(&accel, &gyro, &temp);
-
-  // // Calculate the tilt angle based on the accelerometer data
-  // double tiltAngle = atan2(accel.acceleration.y, accel.acceleration.z) * (180.0 / PI);
-
-  // // Use proportional control to adjust motor speeds based on tilt angle
-  // double correctionFactor = 0.05;  // Adjust this value for the desired correction speed
-  // double correction = tiltAngle * correctionFactor;
-
-  // // Adjust the motor speeds based on the correction
-  // int leftSpeed = 255 - correction;
-  // int rightSpeed = 255 - correction;
-
-  // // Limit the motor speeds to the valid range (0-255)
-  // leftSpeed = constrain(leftSpeed, 0, 255);
-  // rightSpeed = constrain(rightSpeed, 0, 255);
-
-  // // Drive the robot with the adjusted motor speeds
-  // setMotors(leftSpeed, 0, rightSpeed, 0);
-  // // Check if the robot is stuck based on overall angular velocity magnitude
-  // double angularVelocityMagnitudeThreshold = 0.06;  // Adjust this threshold based on your robot's behavior
-  // double angularVelocityMagnitude = sqrt(pow(gyro.gyro.x, 2) + pow(gyro.gyro.y, 2) + pow(gyro.gyro.z, 2));
-  // Serial.println(angularVelocityMagnitude);
-  // // Introduce a timer to avoid constant back and forth
-  // static unsigned long stuckTimer = 0;
-  // static bool isStuck = false;
-  // unsigned long currentTime = millis();
-
-  // if (angularVelocityMagnitude < angularVelocityMagnitudeThreshold) {
-  //   if (!isStuck) {
-  //     // Start the timer when the robot first appears stuck
-  //     stuckTimer = currentTime;
-  //     isStuck = true;
-  //   } else if (currentTime - stuckTimer >= 1000) {
-  //     // If the robot has been stuck for more than 2 seconds, drive backward
-  //     setMotors(0, rightSpeed, 0, leftSpeed);
-  //     delay(500);
-  //     isStuck = false;  // Reset the stuck flag
-  //   }
-  // } else {
-  //   // Reset the timer if the robot is not stuck
-  //   isStuck = false;
+  // if (!hasStartEnded)
+  // {
+  //   gripper(GRIPPER_OPEN);
+  //   hasStartEnded = true;
   // }
+
+  // if (!startTrigger)
+  // {
+
+  //   startTrigger = true;
+  // } 
+
+  // readLineSensor();
+ 
+  distanceSensor();
+
+  if (continueRightSensor)
+  {
+    distanceSensorRight();
+  }
+
 }
 
-//-----------------------------------[Neopixel]-------------------------------
+//-----------------------------------[Neopixel]-------------------------------------
 
 // Set color for a specific Neopixel
 void setPixelColor(int pixel, uint8_t red, uint8_t green, uint8_t blue) {
@@ -190,22 +257,7 @@ void setPixelColor(int pixel, uint8_t red, uint8_t green, uint8_t blue) {
   strip.show();
 }
 
-//-----------------------------------[Gripper]--------------------------------
-
-void gripperToggle() {
-  static unsigned long timer;
-  static bool state;
-  if (millis() > timer) {
-    if (state == true) {
-      gripper(GRIPPER_OPEN);
-      state = false;
-    } else {
-      gripper(GRIPPER_CLOSED);
-      state = true;
-    }
-    timer = millis() + GRIPPER_TOGGLE;
-  }
-}
+//-----------------------------------[Gripper servo]--------------------------------
 
 void gripper(int pulse) {
   static unsigned long timer;
@@ -221,304 +273,165 @@ void gripper(int pulse) {
   }
 }
 
-//-----------------------------------[Echo Servo]-----------------------------
-
-void servo(int pulse) {
-  static unsigned long timer;
-  static int pulse1;
-  if (pulse > 0) {
-    pulse1 = pulse;
-  }
-  if (millis() > timer) {
-    digitalWrite(SERVO_PIN, HIGH);
-    delayMicroseconds(pulse1);
-    digitalWrite(SERVO_PIN, LOW);
-    timer = millis() + SERVO_INTERVAL;
-  }
-}
-//-----------------------------------[Puls sensors]---------------------------
-
-void leftPulseInterrupt() {
-  noInterrupts();
-  interruptLeft++;
-  interrupts();
-}
-
-void rightPulseInterrupt() {
-  noInterrupts();
-  interruptRight++;
-  interrupts();
-}
-
 //-----------------------------------[Wheels motor]---------------------------
-
-void calibrateToDriveStraight() {
-  driveForward(2);
-  delay(5000);
-  driveStop();
-  // Stops the interrupts to prevent interference during calibration
-  noInterrupts();
-  // Determine the maximum and minimum pulses from left and right interrupts
-  double maxPulses = max(interruptLeft, interruptRight);
-  double minPulses = min(interruptLeft, interruptRight);
-  // Calculate the offset pulses as a percentage based on the minimum and maximum pulses
-  double offsetPulses = round((minPulses / maxPulses) * 100);
-  // Set the offsets for left and right motors based on the maximum pulses
-  rightOffset = (interruptRight == maxPulses) ? offsetPulses : 100;
-  leftOffset = (interruptLeft == maxPulses) ? offsetPulses : 100;
-  // Print calibration results to Serial Monitor
-  Serial.print("Left offset: ");
-  Serial.print(leftOffset);
-  Serial.print(" | Right offset: ");
-  Serial.println(rightOffset);
-  Serial.println(offsetPulses);
-  Serial.println(maxPulses);
-  Serial.println(minPulses);
-  // Re-enable interrupts 
-  interrupts();
-}
 
 // Sets motor power to input
 void setMotors(int LFWD, int LBACK, int RFWD, int RBACK) {
-  analogWrite(MOTOR_LEFT_FORWARD,   constrain(LFWD, 0, 255));
-  analogWrite(MOTOR_LEFT_BACKWARD,  constrain(LBACK, 0, 255));
-  analogWrite(MOTOR_RIGHT_FORWARD,  constrain(RFWD, 0, 255));
+  analogWrite(MOTOR_LEFT_FORWARD, constrain(LFWD, 0, 255));
+  analogWrite(MOTOR_LEFT_BACKWARD, constrain(LBACK, 0, 255));
+  analogWrite(MOTOR_RIGHT_FORWARD, constrain(RFWD, 0, 255));
   analogWrite(MOTOR_RIGHT_BACKWARD, constrain(RBACK, 0, 255));
 }
 
 //-----------------------------------[Drive functions]------------------------
 
 void driveLeft(int speed) {
-  setMotors(0, speed, speed, 0);
   leftLight();
+  setMotors(0, speed, speed, 0);
 }
-
 
 void driveRight(int speed) {
   setMotors(speed, 0, 0, speed);
   rightLight();
 }
 
-
-// Drive forwards at 0-2 speed
 void driveForward(int speed) {
-  setMotors(speed, 0 , speed, 0);
-  forwardLight(); // Turn on forward lights
+  setMotors(speed, 0, speed, 0);
+  forwardLight();
 }
 
-// Drive backwards at 0-2 speed
 void driveBack(int speed) {
   setMotors(0, speed, 0, speed);
   brakeLight();
 }
 
-// Stop driving
 void driveStop() {
   setMotors(0, 0, 0, 0);
-  brakeLight(); // Turn on brake lights
+  brakeLight();
 }
 
 //-----------------------------------[Blinking lights]------------------------
 
 void brakeLight() {
   // Set color for each Neopixel individually
-  setPixelColor(0, 0, 255, 0);  // Red for the first Neopixel
-  setPixelColor(1, 0, 255, 0);  // Red for the second Neopixel
-  setPixelColor(2, 0, 0, 0);    // Turn off other Neopixels
-  setPixelColor(3, 0, 0, 0);    // Turn off other Neopixels
+  setPixelColor(0, 255, 0, 0); // Red for the first Neopixel
+  setPixelColor(1, 255, 0, 0); // Red for the second Neopixel
+  setPixelColor(2, 0, 0, 0); // Turn off other Neopixels
+  setPixelColor(3, 0, 0, 0); // Turn off other Neopixels
 }
 
 void forwardLight() {
   // Set color for each Neopixel individually
-  setPixelColor(0, 0, 0, 0);  // Turn off other Neopixels
-  setPixelColor(1, 0, 0, 0);  // Turn off other Neopixels
-  setPixelColor(2, 255, 0, 0);    // green for the 3th Neopixel
-  setPixelColor(3, 255, 0, 0);    // green for the 4th Neopixel
+  setPixelColor(0, 0, 0, 0); // Turn off other Neopixels
+  setPixelColor(1, 0, 0, 0); // Turn off other Neopixels
+  setPixelColor(2, 0, 255, 0); // green for the 3th Neopixel
+  setPixelColor(3, 0, 255, 0); // green for the 4th Neopixel
 }
 
 void leftLight() {
   // Set color for each Neopixel individually
-  setPixelColor(0, 0, 0, 0);  // Turn off other Neopixels
-  setPixelColor(1, 0, 0, 0);  // Turn off other Neopixels
-  setPixelColor(2, 255, 0, 0);    // Turn off other Neopixels
-  setPixelColor(3, 80, 255, 0);    // Orange for the 4th Neopixel
+  setPixelColor(0, 0, 0, 0); // Turn off other Neopixels
+  setPixelColor(1, 0, 0, 0); // Turn off other Neopixels
+  setPixelColor(2, 0, 255, 0); // green for the 3th Neopixel
+  setPixelColor(3, 255, 80, 0); // Orange for the 4th Neopixel
 }
 
 void rightLight() {
   // Set color for each Neopixel individually
-  setPixelColor(0, 0, 0, 0);  // Turn off other Neopixels
-  setPixelColor(1, 0, 0, 0);  // Turn off other Neopixels
-  setPixelColor(2, 80, 255, 0);    // Orange for the 3th Neopixel
-  setPixelColor(3, 255, 0, 0);    // Turn off other Neopixels
-}
-
-//-----------------------------------[Echo servo directions]------------------
-
-void lookStraight() {
-  servo(SERVO_MID_PULSE);
-}
-
-void lookLeft() {
-  servo(SERVO_MAX_PULSE);
-}
-
-void lookRight() {
-  servo(SERVO_MIN_PULSE);
+  setPixelColor(0, 0, 0, 0); // Turn off other Neopixels
+  setPixelColor(1, 0, 0, 0); // Turn off other Neopixels
+  setPixelColor(2, 255, 80, 0); // Orange for the 3th Neopixel
+  setPixelColor(3, 0, 255, 0); // green for the 4th Neopixel
 }
 
 //-----------------------------------[Echo sensor]------------------------
 
-long measureDistance()
-{
-  // Echo detection to measure the distance
-  long duration, distance;
-  digitalWrite(TRIGGER_PIN, LOW);
+void distanceReader() {
+  digitalWrite(TRIGGER_PIN, LOW); // Reset pin
   delayMicroseconds(2);
-  digitalWrite(TRIGGER_PIN, HIGH);
+  digitalWrite(TRIGGER_PIN, HIGH); // High pulses for 10 ms
   delayMicroseconds(10);
   digitalWrite(TRIGGER_PIN, LOW);
-  duration = pulseIn(ECHO_PIN, HIGH);
-  distance = duration * 0.034 / 2;
-  return distance;
+
+  duration = pulseIn(ECHO_PIN, HIGH); // Reads pins
+  distance = (duration / 2) * 0.0343; // 343 m/s per second as speed of sound
 }
 
-//-----------------------------------[Gyro sensor]------------------------
-
-void initializeGyro()
-{
-  while (!Serial)
-    delay(1000); // will pause Zero, Leonardo, etc until serial console opens
-
-  Serial.println("Adafruit LSM6DS3TR-C test!");
-
-  if (!lsm6ds3trc.begin_I2C()) {
-    // if (!lsm6ds3trc.begin_SPI(LSM_CS)) {
-    // if (!lsm6ds3trc.begin_SPI(LSM_CS, LSM_SCK, LSM_MISO, LSM_MOSI)) {
-    Serial.println("Failed to find LSM6DS3TR-C chip");
-    while (1) {
-      delay(1000);
+void distanceSensor() {
+  static unsigned long timer;
+  int interval = 200;
+  if (millis() > timer) {
+    distanceReader();
+    Serial.print(distance);
+    Serial.println(" cm");
+    if (distance <= stopDistance) {
+      continueRightSensor = false;
+      tone(BUZZER, 1000, 100); 
+      driveLeft(200);
+    } 
+    else if (distance <= stopDistance + 10)
+    {
+      tone(BUZZER, 800, 500);
     }
+    else
+    {
+      continueRightSensor = true;
+    }
+    timer = millis() + interval;
   }
+}
 
-  Serial.println("LSM6DS3TR-C Found!");
+void distanceReaderRight() {
+  digitalWrite(TRIGGER_PIN_RIGHT, LOW); // Reset pin
+  delayMicroseconds(2);
+  digitalWrite(TRIGGER_PIN_RIGHT, HIGH); // High pulses for 10 ms
+  delayMicroseconds(10);
+  digitalWrite(TRIGGER_PIN_RIGHT, LOW);
 
-  // lsm6ds3trc.setAccelRange(LSM6DS_ACCEL_RANGE_2_G);
-  Serial.print("Accelerometer range set to: ");
-  switch (lsm6ds3trc.getAccelRange()) {
-  case LSM6DS_ACCEL_RANGE_2_G:
-    Serial.println("+-2G");
-    break;
-  case LSM6DS_ACCEL_RANGE_4_G:
-    Serial.println("+-4G");
-    break;
-  case LSM6DS_ACCEL_RANGE_8_G:
-    Serial.println("+-8G");
-    break;
-  case LSM6DS_ACCEL_RANGE_16_G:
-    Serial.println("+-16G");
-    break;
+  duration = pulseIn(ECHO_PIN_RIGHT, HIGH); // Reads pins
+  distance = (duration / 2) * 0.0343; // 343 m/s per second as speed of sound
+}
+
+void distanceSensorRight() {
+  static unsigned long timer;
+  int interval = 10;
+
+  // Get sensor events
+  sensors_event_t accel;
+  sensors_event_t gyro;
+  sensors_event_t temp;
+  lsm6ds3.getEvent( & accel, & gyro, & temp);
+
+  // Calculate the tilt angle based on the accelerometer data
+  double tiltAngle = atan2(accel.acceleration.y, accel.acceleration.z) * (180.0 / PI);
+
+  // Use proportional control to adjust motor speeds based on tilt angle
+  double correctionFactor = 0.05; // Adjust this value for the desired correction speed
+  double correction = tiltAngle * correctionFactor;
+
+  // Adjust the motor speeds based on the correction
+  int leftSpeed = 255 - correction;
+  int rightSpeed = 255 - correction;
+
+  // Limit the motor speeds to the valid range (0-255)
+  leftSpeed = constrain(leftSpeed, 0, 255);
+  rightSpeed = constrain(rightSpeed, 0, 255);
+
+  if (millis() > timer) {
+    distanceReaderRight();
+    
+
+    if (distance >= minRightDistance) {
+      setMotors(leftSpeed, 0, rightSpeed - 100, 0);
+    } else if (distance <= maxRightDistance) {
+      setMotors(leftSpeed - 100, 0, rightSpeed, 0);
+    } else {
+      // Drive the robot with the adjusted motor speeds
+      setMotors(leftSpeed, 0, rightSpeed, 0);
+    }
+    
+    timer = millis() + interval;
   }
-
-  // lsm6ds3trc.setGyroRange(LSM6DS_GYRO_RANGE_250_DPS);
-  Serial.print("Gyro range set to: ");
-  switch (lsm6ds3trc.getGyroRange()) {
-  case LSM6DS_GYRO_RANGE_125_DPS:
-    Serial.println("125 degrees/s");
-    break;
-  case LSM6DS_GYRO_RANGE_250_DPS:
-    Serial.println("250 degrees/s");
-    break;
-  case LSM6DS_GYRO_RANGE_500_DPS:
-    Serial.println("500 degrees/s");
-    break;
-  case LSM6DS_GYRO_RANGE_1000_DPS:
-    Serial.println("1000 degrees/s");
-    break;
-  case LSM6DS_GYRO_RANGE_2000_DPS:
-    Serial.println("2000 degrees/s");
-    break;
-  case ISM330DHCX_GYRO_RANGE_4000_DPS:
-    break; // unsupported range for the DS33
-  }
-
-  // lsm6ds3trc.setAccelDataRate(LSM6DS_RATE_12_5_HZ);
-  Serial.print("Accelerometer data rate set to: ");
-  switch (lsm6ds3trc.getAccelDataRate()) {
-  case LSM6DS_RATE_SHUTDOWN:
-    Serial.println("0 Hz");
-    break;
-  case LSM6DS_RATE_12_5_HZ:
-    Serial.println("12.5 Hz");
-    break;
-  case LSM6DS_RATE_26_HZ:
-    Serial.println("26 Hz");
-    break;
-  case LSM6DS_RATE_52_HZ:
-    Serial.println("52 Hz");
-    break;
-  case LSM6DS_RATE_104_HZ:
-    Serial.println("104 Hz");
-    break;
-  case LSM6DS_RATE_208_HZ:
-    Serial.println("208 Hz");
-    break;
-  case LSM6DS_RATE_416_HZ:
-    Serial.println("416 Hz");
-    break;
-  case LSM6DS_RATE_833_HZ:
-    Serial.println("833 Hz");
-    break;
-  case LSM6DS_RATE_1_66K_HZ:
-    Serial.println("1.66 KHz");
-    break;
-  case LSM6DS_RATE_3_33K_HZ:
-    Serial.println("3.33 KHz");
-    break;
-  case LSM6DS_RATE_6_66K_HZ:
-    Serial.println("6.66 KHz");
-    break;
-  }
-
-   // lsm6ds3trc.setGyroDataRate(LSM6DS_RATE_12_5_HZ);
-  Serial.print("Gyro data rate set to: ");
-  switch (lsm6ds3trc.getGyroDataRate()) {
-  case LSM6DS_RATE_SHUTDOWN:
-    Serial.println("0 Hz");
-    break;
-  case LSM6DS_RATE_12_5_HZ:
-    Serial.println("12.5 Hz");
-    break;
-  case LSM6DS_RATE_26_HZ:
-    Serial.println("26 Hz");
-    break;
-  case LSM6DS_RATE_52_HZ:
-    Serial.println("52 Hz");
-    break;
-  case LSM6DS_RATE_104_HZ:
-    Serial.println("104 Hz");
-    break;
-  case LSM6DS_RATE_208_HZ:
-    Serial.println("208 Hz");
-    break;
-  case LSM6DS_RATE_416_HZ:
-    Serial.println("416 Hz");
-    break;
-  case LSM6DS_RATE_833_HZ:
-    Serial.println("833 Hz");
-    break;
-  case LSM6DS_RATE_1_66K_HZ:
-    Serial.println("1.66 KHz");
-    break;
-  case LSM6DS_RATE_3_33K_HZ:
-    Serial.println("3.33 KHz");
-    break;
-  case LSM6DS_RATE_6_66K_HZ:
-    Serial.println("6.66 KHz");
-    break;
-  }
-
-  lsm6ds3trc.configInt1(false, false, true); // accelerometer DRDY on INT1
-  lsm6ds3trc.configInt2(false, true, false); // gyro DRDY on INT2
 }
 
 //-----------------------------------[Line sensor]------------------------
@@ -549,9 +462,9 @@ void readLineSensor() {
     }
 
     if (allBlackTimerStart >= 1000) {
-        // If all sensors have been black for more than 5 seconds and gripper is not already closed, close the gripper
-        gripper(GRIPPER_CLOSED);
-        gripperClosed = true;
+      // If all sensors have been black for more than 5 seconds and gripper is not already closed, close the gripper
+      gripper(GRIPPER_CLOSED);
+      gripperClosed = true;
     }
 
     //Print sensor values
@@ -561,23 +474,134 @@ void readLineSensor() {
     //   Serial.print(" ");
     // }
 
-    if (sensorValues[2] >= BLACK || sensorValues[3] >= BLACK || sensorValues[4] >= BLACK || sensorValues[1] >= BLACK){
+    if (sensorValues[2] >= BLACK || sensorValues[3] >= BLACK || sensorValues[4] >= BLACK || sensorValues[1] >= BLACK) {
       driveForward(200); //We start with slowest and then modify the speed to a decent speed
       Serial.print("forward");
       Serial.print(" ");
-    }
-    else if (sensorValues[5] >= BLACK){
+    } else if (sensorValues[5] >= BLACK) {
       driveRight(255);
       Serial.print("right222");
       Serial.print(" ");
-    }
-    else if (sensorValues[0] >= BLACK){
+    } else if (sensorValues[0] >= BLACK) {
       driveLeft(255);
       Serial.print("left222");
       Serial.print(" ");
-    }  
+    }
     timer = millis() + SENSOR_INTERVAL;
-  } 
+  }
 }
 
+//-----------------------------------[Gyro sensor]------------------------
+
+void initializeGyro() {
+  if (!gyroInitialized) { // Check if gyro has not been initialized yet
+    while (!Serial)
+      delay(1000); // will pause Zero, Leonardo, etc until serial console opens
+
+    Serial.println("Adafruit LSM6DS3TR-C test!");
+
+    if (!lsm6ds3.begin_I2C()) {
+      Serial.println("Failed to find LSM6DS3TR-C chip");
+      while (1) {
+        delay(1000);
+      }
+    }
+
+    Serial.println("LSM6DS3TR-C Found!");
+
+    // Initialize the gyro sensor once
+    sensors_event_t accel;
+    sensors_event_t gyro;
+    sensors_event_t temp;
+    lsm6ds3.getEvent(&accel, &gyro, &temp);
+
+    // Store the initial gyro readings in global variables
+    gyroX = gyro.gyro.x;
+    gyroY = gyro.gyro.y;
+    gyroZ = gyro.gyro.z;
+
+    // Print initial gyro readings for debugging
+    Serial.print("Initial Gyro X: ");
+    Serial.println(gyroX);
+    Serial.print("Initial Gyro Y: ");
+    Serial.println(gyroY);
+    Serial.print("Initial Gyro Z: ");
+    Serial.println(gyroZ);
+
+    gyroInitialized = true; // Set the flag to true to indicate gyro has been initialized
+  }
+}
+
+//-----------------------------------[Speaker]--------------------------------------
+
+void defaultSpeakerValues(int tempo, int melody[], int melodyLength) {
+  // Calculate the number of notes based on the length of the melody array
+  int notes = melodyLength / 2;
+
+  // Calculate the duration of a whole note in milliseconds
+  int wholenote = (60000 * 4) / tempo;
+
+  int divider = 0, noteDuration = 0;
+
+  for (int thisNote = 0; thisNote < notes * 2; thisNote += 2) {
+    // Calculate the duration of each note
+    divider = melody[thisNote + 1];
+    if (divider > 0) {
+      // Regular note, just proceed
+      noteDuration = wholenote / divider;
+    } else if (divider < 0) {
+      // Dotted notes are represented with negative durations
+      noteDuration = wholenote / abs(divider);
+      noteDuration *= 1.5; // Increase the duration in half for dotted notes
+    }
+
+    // Play the note for 90% of the duration, leaving 10% as a pause
+    tone(BUZZER, melody[thisNote], noteDuration * 0.9);
+
+    // Wait for the specified duration before playing the next note
+    delay(noteDuration);
+
+    // Stop the waveform generation before the next note
+    noTone(BUZZER);
+  }
+}
+
+void channel() {
+  int tempo = 114;
+
+  // notes of the moledy followed by the duration.
+  // a 4 means a quarter note, 8 an eighteenth , 16 sixteenth, so on
+  // !!negative numbers are used to represent dotted notes,
+  // so -4 means a dotted quarter note, that is, a quarter plus an eighteenth!!
+  int melody[] = {
+
+  // Pink Panther theme
+  // Score available at https://musescore.com/benedictsong/the-pink-panther
+  // Theme by Masato Nakamura, arranged by Teddy Mason
+
+  NOTE_FS4,8, REST,8, NOTE_A4,8, NOTE_CS5,8, REST,8,NOTE_A4,8, REST,8, NOTE_FS4,8, //1
+  NOTE_D4,8, NOTE_D4,8, NOTE_D4,8, REST,8, REST,4, REST,8, NOTE_CS4,8,
+  NOTE_D4,8, NOTE_FS4,8, NOTE_A4,8, NOTE_CS5,8, REST,8, NOTE_A4,8, REST,8, NOTE_F4,8,
+  NOTE_E5,-4, NOTE_DS5,8, NOTE_D5,8, REST,8, REST,4,
   
+  NOTE_GS4,8, REST,8, NOTE_CS5,8, NOTE_FS4,8, REST,8,NOTE_CS5,8, REST,8, NOTE_GS4,8, //5
+  REST,8, NOTE_CS5,8, NOTE_G4,8, NOTE_FS4,8, REST,8, NOTE_E4,8, REST,8,
+  NOTE_E4,8, NOTE_E4,8, NOTE_E4,8, REST,8, REST,4, NOTE_E4,8, NOTE_E4,8,
+  NOTE_E4,8, REST,8, REST,4, NOTE_DS4,8, NOTE_D4,8, 
+
+  NOTE_CS4,8, REST,8, NOTE_A4,8, NOTE_CS5,8, REST,8,NOTE_A4,8, REST,8, NOTE_FS4,8, //9
+  NOTE_D4,8, NOTE_D4,8, NOTE_D4,8, REST,8, NOTE_E5,8, NOTE_E5,8, NOTE_E5,8, REST,8,
+  REST,8, NOTE_FS4,8, NOTE_A4,8, NOTE_CS5,8, REST,8, NOTE_A4,8, REST,8, NOTE_F4,8,
+  NOTE_E5,2, NOTE_D5,8, REST,8, REST,4,
+
+  NOTE_B4,8, NOTE_G4,8, NOTE_D4,8, NOTE_CS4,4, NOTE_B4,8, NOTE_G4,8, NOTE_CS4,8, //13
+  NOTE_A4,8, NOTE_FS4,8, NOTE_C4,8, NOTE_B3,4, NOTE_F4,8, NOTE_D4,8, NOTE_B3,8,
+  NOTE_E4,8, NOTE_E4,8, NOTE_E4,8, REST,4, REST,4, NOTE_AS4,4,
+  NOTE_CS5,8, NOTE_D5,8, NOTE_FS5,8, NOTE_A5,8, REST,8, REST,4, 
+};
+
+  int melodyLength = sizeof(melody) / sizeof(melody[0]);
+
+  defaultSpeakerValues(tempo, melody, melodyLength);
+
+}
