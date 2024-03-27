@@ -23,7 +23,8 @@ void driveStop();
 void lookStraight();
 void lookLeft();
 void lookRight();
-long measureDistance();
+void distanceReader();
+void distanceSensor();
 void calibrateToDriveStraight();
 void leftPulseInterrupt();
 void rightPulseInterrupt();
@@ -93,6 +94,8 @@ double wantedRotation = 0; // Variable to store the rotation value
 
 bool isDrivingForward = true; // Variable to store the direction of the robot
 
+long duration, distance; // Variables to store the duration and distance for the HC-SR04 sensor
+
 //-----------------------------------[Gyro]-----------------------------------
 
 #define PI 3.1415926535897932384626433832795
@@ -123,8 +126,6 @@ void setup() {
   {
     pinMode(sensorPins[i], INPUT);
   }
-  attachInterrupt(digitalPinToInterrupt(MOTOR_LEFT_READ), leftPulseInterrupt, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(MOTOR_RIGHT_READ), rightPulseInterrupt, CHANGE);
   Serial.begin(38400);
 
   while (!Serial)
@@ -266,6 +267,13 @@ void setup() {
 
   gripper(GRIPPER_OPEN);
   updateRotation();
+
+  // turnToAngle("left");
+
+  // Serial.println(wantedRotation);
+
+  // delay(5000);
+
 }
 
 //-----------------------------------[Loop function]----------------------------
@@ -277,75 +285,34 @@ void loop() {
   sensors_event_t temp;
   lsm6ds3trc.getEvent(&accel, &gyro, &temp);
 
-  Serial.print(temp.temperature);
-  Serial.print(" Temps,");
+  // Serial.print(temp.temperature);
+  // Serial.print(" Temps,");
 
-  Serial.print(accel.acceleration.x);
-  Serial.print(" Accel.y,"); Serial.print(accel.acceleration.y);
-  Serial.print(" Accel.z,"); Serial.print(accel.acceleration.z);
-  Serial.print(",");
+  // Serial.print(accel.acceleration.x);
+  // Serial.print(" Accel.y,"); Serial.print(accel.acceleration.y);
+  // Serial.print(" Accel.z,"); Serial.print(accel.acceleration.z);
+  // Serial.print(",");
 
-  Serial.print(gyro.gyro.x);
-  Serial.print(" Gyro.y,"); Serial.print(gyro.gyro.y);
-  Serial.print(" Gyro.z,"); Serial.print(gyro.gyro.z);
-  Serial.println();
-  delayMicroseconds(10000);
+  // Serial.print(gyro.gyro.x);
+  // Serial.print(" Gyro.y,"); Serial.print(gyro.gyro.y);
+  // Serial.print(" Gyro.z,"); Serial.print(gyro.gyro.z);
+  // Serial.println();
+  // delayMicroseconds(10000);
 
 
-//   // Measure distance
-//   long distance = measureDistance();
-//   // Read reflection sensor values
-//   for (int i = 0; i < numberOfSensors; i++) {
-//     sensorValues[i] = analogRead(sensorPins[i]);
-//   }
-//   // Print reflection sensor values to Serial Monitor
-//   Serial.print("Reflection Sensor Values: ");
-//   for (int i = 0; i < numberOfSensors; i++) {
-//     Serial.print(sensorValues[i]);
-//     Serial.print(" ");
-//   }
-//   Serial.println();
-//   // Calibrate to drive straight during the initial setup
-//   if (!calibrated) {
-//     calibrateToDriveStraight();
-//     calibrated = true;
-//   }
-//  // Check for obstacles
-//   if (distance <= stopDistance) {
-//     driveStop();
-//     // Look right with delay
-//     lookRight();
-//     delay(1000);
-//     // Measure distance again after looking left
-//     distance = measureDistance();
-//     // If there is still an obstacle on the left, look right and drive right
-//     if (distance <= stopDistance) {
-//       lookLeft();
-//       delay(1000);
-//     } else {
-//       // Move backward if both interrupts are low
-//       if (interruptLeft == 0 && interruptRight == 0) {
-//         driveBack(2);
-//       } else {
-//         // Move forward if no obstacle
-//         driveForward(2);
-//       }
-//     }
-//     // Reset interrupts after processing
-//     interruptLeft = 0;
-//     interruptRight = 0;
-//   } else {
-//     // Move forward if no obstacle
-//     driveForward(2);
-//   }
   gripper(GRIPPER_CLOSED); // Close the gripper
 
   updateRotation(); // Update the rotation value
   Serial.println(rotationInDegrees); // Print the rotation value to Serial Monitor
 
-
+  distanceSensor(); // Call the distanceSensor function to check for obstacles
   
-  driveForward(2.55);
+  // driveForward(2.55);
+  // Serial.print("wantedRotation:");
+  // Serial.println(wantedRotation);
+
+  // Serial.print("rotationInDegrees:");
+  // Serial.println(rotationInDegrees);
   
 }
 
@@ -403,47 +370,7 @@ void servo(int pulse) {
     timer = millis() + SERVO_INTERVAL;
   }
 }
-//-----------------------------------[Puls sensors]---------------------------
 
-void leftPulseInterrupt() {
-  noInterrupts();
-  interruptLeft++;
-  interrupts();
-}
-
-void rightPulseInterrupt() {
-  noInterrupts();
-  interruptRight++;
-  interrupts();
-}
-
-//-----------------------------------[Wheels motor]---------------------------
-
-void calibrateToDriveStraight() {
-  driveForward(2);
-  delay(5000);
-  driveStop();
-  // Stops the interrupts to prevent interference during calibration
-  noInterrupts();
-  // Determine the maximum and minimum pulses from left and right interrupts
-  double maxPulses = max(interruptLeft, interruptRight);
-  double minPulses = min(interruptLeft, interruptRight);
-  // Calculate the offset pulses as a percentage based on the minimum and maximum pulses
-  double offsetPulses = round((minPulses / maxPulses) * 100);
-  // Set the offsets for left and right motors based on the maximum pulses
-  rightOffset = (interruptRight == maxPulses) ? offsetPulses : 100;
-  leftOffset = (interruptLeft == maxPulses) ? offsetPulses : 100;
-  // Print calibration results to Serial Monitor
-  Serial.print("Left offset: ");
-  Serial.print(leftOffset);
-  Serial.print(" | Right offset: ");
-  Serial.println(rightOffset);
-  Serial.println(offsetPulses);
-  Serial.println(maxPulses);
-  Serial.println(minPulses);
-  // Re-enable interrupts 
-  interrupts();
-}
 
 // Sets motor power to input
 void setMotors(double LFWD, double LBACK, double RFWD, double RBACK) {
@@ -464,7 +391,7 @@ void driveLeft(int speed) {
 // Rotate right at 0-2 speed
 void driveRight(int speed) {
   rightLight();
-  setMotors(speed, 0 , 0, speed);
+  setMotors(speed, 0, 0, speed);
 }
 // Rotate right at 0-2 speed
 void driveForward(double speed) {
@@ -537,14 +464,13 @@ void lookLeft() {
   // Add a delay to give some time for the servo to move (you may need to adjust the delay duration)
   delay(800);
   // Measure distance
-  long distance = measureDistance();
+  distanceReader();
   // Check for obstacles
-  if (distance <= stopDistance) {
-    lookStraight();
-  } else {
-    wantedRotation -= 90;
-    lookStraight();
-  }
+  if (distance >= stopDistance) {
+    Serial.println("wants to turn left");
+    driveStop();
+    delay(3000);
+  } 
 }
 
 // Function to close the gripper (move the servo to the closed position)
@@ -552,7 +478,7 @@ void lookRight() {
   servo(SERVO_MIN_PULSE);
   delay(800);
   // Measure distance
-  long distance = measureDistance();
+  distanceReader();
   // Check for obstacles
   if (distance <= stopDistance) {
     lookLeft();
@@ -564,18 +490,40 @@ void lookRight() {
 
 //-----------------------------------[Echo sensor]------------------------
 
-long measureDistance()
+
+void distanceReader()
 {
-  // Echo detection to measure the distance
-  long duration, distance;
-  digitalWrite(TRIGGER_PIN, LOW);
-  delayMicroseconds(2);
-  digitalWrite(TRIGGER_PIN, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(TRIGGER_PIN, LOW);
-  duration = pulseIn(ECHO_PIN, HIGH);
-  distance = duration * 0.034 / 2;
-  return distance;
+    digitalWrite(TRIGGER_PIN, LOW); // Reset pin
+    delayMicroseconds(2);
+    digitalWrite(TRIGGER_PIN, HIGH); // High pulses for 10 ms
+    delayMicroseconds(10);
+    digitalWrite(TRIGGER_PIN, LOW);
+
+
+    duration = pulseIn(ECHO_PIN, HIGH); // Reads pins
+
+    distance = (duration / 2) * 0.0343; // 343 m/s per second as speed of sound
+}
+
+void distanceSensor(){
+static unsigned long timer;
+int interval = 200;
+  if (millis() > timer) 
+  {
+
+    distanceReader();
+
+    if (distance <= stopDistance)
+      {
+        
+      }
+    else
+      {
+        driveForward(2.55);
+        lookLeft();
+      }
+      timer = millis() + interval;
+    }
 }
 
 //-----------------------------------[Gyro]-----------------------------------
@@ -589,17 +537,13 @@ void updateRotation()
   {
     double rotated = (radiansToDegrees(gyro.gyro.z) / 10);
     Serial.println(rotated);
-    rotationInDegrees += rotated;
+    if (abs(rotated) >= 0.2) {
+        rotationInDegrees += rotated;
+        rotationInDegrees = wrapAngle(rotationInDegrees); // Call the wrapAngle function to ensure the rotation is within 0-359 degrees
+    }
+
     timer = millis() + interval;  
-  }  
-  if(rotationInDegrees > 360)
-  {
-    rotationInDegrees -= 360;  
-  }
-  if(rotationInDegrees < 0)
-  {
-    rotationInDegrees += 360;  
-  }
+  } 
 }
 
 double radiansToDegrees(double radians)
@@ -608,26 +552,28 @@ double radiansToDegrees(double radians)
 }
 
 
-void turnToAngle(double wantedRotation)
+void turnToAngle(String direction)
 {
+
+    if (direction == "left")
+    {
+      wantedRotation = +90;
+      Serial.println("left");
+    }
+    else if (direction == "right")
+    {
+      wantedRotation = -90;
+    }
+
     int speed;
 
-    double rotationLeft = abs(wantedRotation - rotationInDegrees);
-    if (rotationLeft < 15)
+    if (abs(rotationInDegrees - wantedRotation) > 3)
     {
-        speed = 255 * (rotationLeft / 30);
-    }
-    else
-    {
-        speed = 255;
-    }
-    if (isRightTurnFaster(wantedRotation))
-    {
-        driveRight(speed);
-    }
-    else
-    {
-        driveLeft(speed);
+      if (isRightTurnFaster(wantedRotation)) {
+      setMotors(speed, 0, 0, 0);
+      } else {
+      setMotors(0, 0, speed, 0);
+      } 
     }
     
 }
@@ -646,15 +592,18 @@ bool isRightTurnFaster(double wantedRotation)
     }
 }
 
-double wrapAngle(int rotationToWrap)
-{
-    if (rotationToWrap > 360)
-    {
-        rotationToWrap -= 360;
-    }
-    if (rotationToWrap < 0)
-    {
-        rotationToWrap += 360;
+double wrapAngle(int rotationToWrap) {
+    if (rotationToWrap >= 360 || rotationToWrap < 0) {
+        rotationToWrap = rotationToWrap % 360; // Ensure angle is within range
+        if (rotationToWrap < 0) {
+            rotationToWrap += 360; // Adjust negative angles
+        }
     }
     return rotationToWrap;
+}
+
+
+double setWantedRotation(double newWantedRotation)
+{
+  wantedRotation = newWantedRotation;
 }

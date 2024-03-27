@@ -67,7 +67,7 @@ int sensorValues[numberOfSensors]; // Array to store the sensor values
 
 const int BLACK = 900;
 
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_RGB + NEO_KHZ800);
 Adafruit_LSM6DS3TRC lsm6ds3trc;
 Adafruit_LSM6DS3TRC lsm6ds3;
 
