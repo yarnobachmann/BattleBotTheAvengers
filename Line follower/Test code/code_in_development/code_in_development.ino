@@ -393,6 +393,7 @@ void loop() {
   color0();
   
   if (START) {
+    getDistance();
     if (checkObstacle()) {
       if(afstandChecked >= 2)
       {

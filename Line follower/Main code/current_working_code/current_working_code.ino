@@ -311,6 +311,25 @@ float getDistance()
   return 0.017 * duration;
 }
 
+void avoidObstacle()
+{
+    analogWrite(MOTOR_B_2, 255);
+    analogWrite(MOTOR_A_2, 200);
+    analogWrite(MOTOR_B_1, 0);
+    analogWrite(MOTOR_A_1, 0);
+
+    delay(500);
+
+    analogWrite(MOTOR_B_2, 200);
+    analogWrite(MOTOR_A_2, 255);
+    analogWrite(MOTOR_B_1, 0);
+    analogWrite(MOTOR_A_1, 0);
+
+    delay (500);
+
+    lineFollower();
+}
+
 int average(int numbers[], int size)
 {
   double sum = 0;

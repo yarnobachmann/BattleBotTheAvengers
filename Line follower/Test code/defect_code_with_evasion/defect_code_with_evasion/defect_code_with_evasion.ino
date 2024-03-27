@@ -96,15 +96,19 @@ void lineFollower() {
 
   bool distanceUnder20 = false;
   
-
+  for (int i = 0; i < 3; i++)
+  {
     distance = getDistance();
     if (distance < 20) {
       distanceUnder20 = true;
+      continue;
     }
     else
     {
       distanceUnder20 = false;
+      break;
     }
+  }
 
   if (distanceUnder20)
   {
