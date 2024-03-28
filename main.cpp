@@ -35,6 +35,10 @@ void readLineSensor();
 void playNote(float frequency, int duration);
 void defaultSpeakerValues();
 void channel();
+boolean isOnLightColor();
+void startup();
+void detectFinish();
+void dropCone();
 
 //-----------------------------------[Declare pins]-------------------------------
 
@@ -194,7 +198,7 @@ float gyroY = 0.0;
 float gyroZ = 0.0;
 
 bool gyroInitialized = false; // Flag to track if gyro has been initialized
-
+static unsigned long timeToStartDetectingFinish;
 
 
 //-----------------------------------[Setup function]---------------------------
@@ -228,17 +232,23 @@ void setup() {
 //-----------------------------------[Loop function]----------------------------
 
 void loop() {
+
   if (!hasStartEnded)
   {
-    for (int i = 0; i < 100; i++)
-    {
-        delay(10);
-        gripper(GRIPPER_OPEN);
-    }
+    startup();
+    
+  }
+ 
+  distanceSensor();  
 
-    start();
+  if (continueRightSensor)
+  {
+    distanceSensorRight();
+  }
 
-    hasStartEnded = true;
+   if (timeToStartDetectingFinish < millis())
+  {
+    detectFinish();
   }
 
   if (!startTrigger)
@@ -246,97 +256,9 @@ void loop() {
 
     startTrigger = true;
   } 
-
-  // readLineSensor();
-
-  distanceSensor();
-
-  if (continueRightSensor)
-  {
-    distanceSensorRight();
-  }
-
 }
 
 //-----------------------------------[Start]---------------------------------
-
-void start()
-{
-  Serial.print("Current LIGHT_VALUE: ");
-  Serial.println(LIGHT_VALUE);
-  
-  int blackLineSum = 0;
-  int blackLineCount = 0;
-  
-  for (int i = 0; i < 3; i++)
-  {
-    do
-    {
-      digitalWrite(TRIGGER_PIN, HIGH);
-      delayMicroseconds(10);
-      digitalWrite(TRIGGER_PIN, LOW);
-    
-      long duration = pulseIn(ECHO_PIN, HIGH);
-      distance = duration * 0.034 / 2; // Bereken de afstand in centimeters
-    }  
-      while(distance > 24);
-  }
-
-    driveForward(200);
-
-    while(blackLineCount < 4)
-    {
-      while (true)
-      {
-        if (analogRead(sensorValues[3]) > LIGHT_VALUE)
-        {
-          break;
-        }
-      }
-      while (true)
-      {
-        if (analogRead(sensorValues[3]) < LIGHT_VALUE)
-        {
-          break;
-        }
-      }
-        blackLineSum += getAverageLightValue();    
-        blackLineCount++; 
-    }
-    driveStop();
-
-    LIGHT_VALUE = blackLineSum / blackLineCount;
-
-    Serial.print("New LIGHT_VALUE: ");
-    Serial.println(LIGHT_VALUE);
-    for (int i = 0; i < 100; i++)
-    {
-        delay(10);
-        gripper(GRIPPER_CLOSED);
-    }
-
-    driveLeft(200);
-    delay(500);
-    while(true)
-    {
-      if(analogRead(sensorValues[4]) > LIGHT_VALUE)
-      {
-        break;
-      }
-      }
-  driveStop();
-}
-
-
-int getAverageLightValue()
-{
-  int sum = 0;
-  for (int i = 0; i < 8; i++)
-  {
-    sum += analogRead(sensorValues[i]);
-  }
-  return sum / 8;
-}
 
 //-----------------------------------[Neopixel]-------------------------------------
 
@@ -582,6 +504,119 @@ void readLineSensor() {
     timer = millis() + SENSOR_INTERVAL;
   }
 }
+
+void startup()
+{
+  int linesPassed = 0;
+  boolean currentColor = false;
+  boolean hasGotPion = false;
+
+  for (int i = 0; i < 100; i++)
+    {
+        delay(10);
+        gripper(GRIPPER_OPEN);
+    }
+
+    for (int i = 0; i < 3; i++)
+  {
+    do
+    {
+      digitalWrite(TRIGGER_PIN, LOW); // Reset pin
+      delayMicroseconds(2);
+      digitalWrite(TRIGGER_PIN, HIGH); // High pulses for 10 ms
+      delayMicroseconds(10);
+      digitalWrite(TRIGGER_PIN, LOW);
+    
+      long duration = pulseIn(ECHO_PIN, HIGH);
+      distance = duration * 0.034 / 2; // Bereken de afstand in centimeters
+    }  
+      while(distance > 24);
+  }
+  driveForward(220);
+  //Count the lines it passes whilst driving forward
+  //When it reaches 7 switches, go to the next phase
+  while(linesPassed <= 6)
+  {
+    boolean detectedColor = isOnLightColor();
+    if (currentColor != detectedColor)
+    {
+      Serial.println("Detected line");
+      currentColor = detectedColor;
+      linesPassed++;
+    }
+  }
+  Serial.println("Waiting for the black square");
+  //Loop untill it's done with the startup sequence
+  while(true)
+  {
+    //Close the gripper once a black line is detected
+    if (!isOnLightColor())
+    {
+      gripper(GRIPPER_CLOSED);
+      hasGotPion = true;
+    }
+    //If it has the Pion, drive forward untill it reached the end of the black square
+    if (hasGotPion)
+    {
+      if (isOnLightColor())
+      {
+        //Stuff to follow the line for a small bit
+        driveLeft(255);
+        delay(600);
+        long timer = millis() + 2000;
+        while(timer > millis())
+        {
+          readLineSensor();
+        }
+        driveForward(180);
+        hasStartEnded = true;
+        break;
+      }
+    }
+  }
+  timeToStartDetectingFinish = millis() + 10000;
+}
+
+boolean isOnLightColor()
+{
+  int averageColor = 0;
+  for (int sensorPin : sensorValues)
+  {
+    averageColor += analogRead(sensorPin);
+  }
+  
+  int lightColor = (averageColor / 4) <= BLACK;
+
+  return lightColor;
+}
+
+void detectFinish()
+{
+  if(sensorValues[5] >= BLACK || sensorValues[0] >= BLACK)
+  {
+    while(isOnLightColor())
+    {
+      readLineSensor();
+    }  
+    dropCone();
+  }
+}
+
+void dropCone()
+{
+  gripper(GRIPPER_OPEN);
+  unsigned long timer = millis() + 1000; 
+  while(timer > millis())
+  {
+    gripper(GRIPPER_OPEN);
+    driveBack(255);
+  }
+  driveStop();
+  while(true)
+  {
+  }
+}
+
 
 //-----------------------------------[Gyro sensor]------------------------
 
