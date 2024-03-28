@@ -174,7 +174,7 @@ bool calibrated = false; // Flag to check if calibration is done
 
 const int stopDistance = 10; // Distance threshold to stop the robot (in cm)
 const int minRightDistance = 5; // Distance threshold to stop the robot (in cm)
-const int maxRightDistance = 8; // Distance threshold to stop the robot (in cm)
+const int maxRightDistance = 7; // Distance threshold to stop the robot (in cm)
 
 int rightOffset = 100; // RightOffset default value set to 100
 int leftOffset = 100; // LeftOffset default value set to 100
@@ -220,23 +220,23 @@ void setup() {
 
   Serial.begin(9600);
   initializeGyro();
+  // channel();
 }
 
 //-----------------------------------[Loop function]----------------------------
 
 void loop() {
-  // gripperToggle();
-  // if (!hasStartEnded)
-  // {
-  //   gripper(GRIPPER_OPEN);
-  //   hasStartEnded = true;
-  // }
+  if (!hasStartEnded)
+  {
+    gripper(GRIPPER_OPEN);
+    hasStartEnded = true;
+  }
 
-  // if (!startTrigger)
-  // {
+  if (!startTrigger)
+  {
 
-  //   startTrigger = true;
-  // } 
+    startTrigger = true;
+  } 
 
   // readLineSensor();
  
@@ -362,8 +362,6 @@ void distanceSensor() {
   int interval = 200;
   if (millis() > timer) {
     distanceReader();
-    Serial.print(distance);
-    Serial.println(" cm");
     if (distance <= stopDistance) {
       continueRightSensor = false;
       tone(BUZZER, 1000, 100); 
@@ -371,7 +369,7 @@ void distanceSensor() {
     } 
     else if (distance <= stopDistance + 10)
     {
-      tone(BUZZER, 800, 500);
+      tone(BUZZER, 1000, 500);
     }
     else
     {
@@ -394,7 +392,6 @@ void distanceReaderRight() {
 
 void distanceSensorRight() {
   static unsigned long timer;
-  int interval = 10;
 
   // Get sensor events
   sensors_event_t accel;
@@ -410,27 +407,36 @@ void distanceSensorRight() {
   double correction = tiltAngle * correctionFactor;
 
   // Adjust the motor speeds based on the correction
-  int leftSpeed = 255 - correction;
-  int rightSpeed = 255 - correction;
+  int leftSpeed = 230 - correction;
+  int rightSpeed = 230 - correction;
 
   // Limit the motor speeds to the valid range (0-255)
   leftSpeed = constrain(leftSpeed, 0, 255);
   rightSpeed = constrain(rightSpeed, 0, 255);
 
-  if (millis() > timer) {
-    distanceReaderRight();
-    
-
-    if (distance >= minRightDistance) {
-      setMotors(leftSpeed, 0, rightSpeed - 100, 0);
-    } else if (distance <= maxRightDistance) {
-      setMotors(leftSpeed - 100, 0, rightSpeed, 0);
-    } else {
-      // Drive the robot with the adjusted motor speeds
-      setMotors(leftSpeed, 0, rightSpeed, 0);
-    }
-    
-    timer = millis() + interval;
+  distanceReaderRight();
+  
+  int difference = distance - minRightDistance;
+  Serial.print("Verschil: ");
+  Serial.println(difference);
+  if (distance >= minRightDistance && difference <= 10) {
+    setMotors(leftSpeed, 0, rightSpeed - 80, 0);
+  } 
+  else if (difference >= 8)
+  {
+    setMotors(leftSpeed, 0, 0, rightSpeed);
+    delay(50);
+  }
+  else if (difference <= 0)
+  {
+    setMotors(0, leftSpeed, rightSpeed, 0);
+    delay(50);
+  }
+  else if (distance <= maxRightDistance && difference <= 10) {
+    setMotors(leftSpeed - 80, 0, rightSpeed, 0);
+  } else {
+    // Drive the robot with the adjusted motor speeds
+    setMotors(leftSpeed, 0, rightSpeed, 0);
   }
 }
 
