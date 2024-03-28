@@ -62,6 +62,7 @@ bool START = false;
 
 unsigned long previousMillis = 0;
 const long interval = 250;
+unsigned long distanceMillis = 0;
 
 
 
@@ -166,7 +167,7 @@ void lineFollower() {
       startTime = millis(); // Start the timer
     } else {
       currentTime = millis(); // Update the current time
-      if (currentTime - startTime >= 150) {
+      if (currentTime - startTime >= 200) {
         analogWrite(MOTOR_A_1, 255);
         analogWrite(MOTOR_A_2, 0);
         analogWrite(MOTOR_B_1, 255);
@@ -204,19 +205,19 @@ void lineFollower() {
   }
   else if ((lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE) && (lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE) && (lineCheck6 > LOWVALUE) && (lineCheck6 < HIGHVALUE) && (lineCheck7 > LOWVALUE) && (lineCheck7 < HIGHVALUE) && (lineCheck8 > LOWVALUE) && (lineCheck8 < HIGHVALUE)){
     analogWrite(MOTOR_B_1, 0);
-    analogWrite(MOTOR_B_2, 225);
-    analogWrite(MOTOR_A_2, 225);
+    analogWrite(MOTOR_B_2, 255);
+    analogWrite(MOTOR_A_2, 255);
     startTime = 0;
    // delay(10);
     lastValueA1 = 0;
-    lastValueA2 = 225;
-    lastValueB1 = 190;
+    lastValueA2 = 255;
+    lastValueB1 = 220;
     lastValueB2 = 0;
   }
   else if ((lineCheck1 > LOWVALUE) && (lineCheck1 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 0);
-    analogWrite(MOTOR_B_2, 190);
-    analogWrite(MOTOR_A_1, 225);
+    analogWrite(MOTOR_B_2, 220);
+    analogWrite(MOTOR_A_1, 255);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
     lastValueA1 = 225;
@@ -225,8 +226,8 @@ void lineFollower() {
     lastValueB2 = 190;
   }
   else if ((lineCheck2 > LOWVALUE) && (lineCheck2 < HIGHVALUE)){
-    analogWrite(MOTOR_A_2, 50);
-    analogWrite(MOTOR_B_2, 225);
+    analogWrite(MOTOR_A_2, 80);
+    analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
@@ -236,8 +237,8 @@ void lineFollower() {
     lastValueB2 = 225;
   }
   else if ((lineCheck3 > LOWVALUE) && (lineCheck3 < HIGHVALUE)){
-    analogWrite(MOTOR_A_2, 130);
-    analogWrite(MOTOR_B_2, 225);
+    analogWrite(MOTOR_A_2, 160);
+    analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
@@ -247,8 +248,8 @@ void lineFollower() {
     lastValueB2 = 225;
   }
   else if ((lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE)){
-    analogWrite(MOTOR_A_2, 225);
-    analogWrite(MOTOR_B_2, 225);
+    analogWrite(MOTOR_A_2, 255);
+    analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
@@ -258,8 +259,8 @@ void lineFollower() {
     lastValueB2 = 220;
   }
   else if ((lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE)){
-    analogWrite(MOTOR_A_2, 225);
-    analogWrite(MOTOR_B_2, 225);
+    analogWrite(MOTOR_A_2, 255);
+    analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
@@ -269,8 +270,8 @@ void lineFollower() {
     lastValueB2 = 225;
   }
   else if((lineCheck6 > LOWVALUEUNIQUE) && (lineCheck6 < HIGHVALUE)){
-    analogWrite(MOTOR_B_2, 130);
-    analogWrite(MOTOR_A_2, 225);
+    analogWrite(MOTOR_B_2, 160);
+    analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
@@ -280,8 +281,8 @@ void lineFollower() {
     lastValueB2 = 0;
   }
   else if((lineCheck7 > LOWVALUE) && (lineCheck7 < HIGHVALUE)){
-    analogWrite(MOTOR_B_2, 50);
-    analogWrite(MOTOR_A_2, 225);
+    analogWrite(MOTOR_B_2, 80);
+    analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
@@ -292,8 +293,8 @@ void lineFollower() {
   }
   else if((lineCheck8 > LOWVALUE) && (lineCheck8 < HIGHVALUE)){
     analogWrite(MOTOR_B_2, 0);
-    analogWrite(MOTOR_A_2, 190);
-    analogWrite(MOTOR_B_1, 225);
+    analogWrite(MOTOR_A_2, 220);
+    analogWrite(MOTOR_B_1, 255);
     analogWrite(MOTOR_A_1, 0);
     startTime = 0;
     lastValueA1 = 0;
@@ -328,12 +329,15 @@ void gripperToggle(bool open) {
 
 float getDistance()
 {
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-  duration = pulseIn(echoPin, HIGH);
-  //Serial.println(0.017 * duration);
-  return 0.017 * duration;
+  if (millis() >= distanceMillis) {
+    distanceMillis = millis() + 200;
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin, LOW);
+    duration = pulseIn(echoPin, HIGH);
+    //Serial.println(0.017 * duration);
+    return 0.017 * duration;
+  }
 }
 
 void avoidObstacle()
