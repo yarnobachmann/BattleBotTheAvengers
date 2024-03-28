@@ -24,9 +24,9 @@ const int LINE_SENSOR[8] = {A0, A1, A2, A3, A4, A5, A6, A7}; // Array for the li
 // White, 6th sensor
 // Grey, 7th sensor
 
-const int LOWVALUE = 550; // Value for white
-const int LOWVALUEUNIQUE = 550; 
-const int HIGHVALUE = 1005; // Value for black
+int LOWVALUE = 550; // Value for white
+int LOWVALUEUNIQUE = 550; 
+int HIGHVALUE = 1005; // Value for black
 
 const int GRIPPER_OPEN = 1800; // Pulse length to open gripper
 const int GRIPPER_CLOSED = 950; // Pulse length to close gripper
@@ -82,6 +82,46 @@ void setup() {
   for (int i = 0; i < 8; i++) {
     pinMode(LINE_SENSOR[i], INPUT);
   }
+
+  start();
+}
+
+void colors() {
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= interval) {
+    // Save the last time the LED strip was updated
+    previousMillis = currentMillis;
+
+    static bool alternate = false;
+
+    if (alternate) {
+      pixels.begin();
+      pixels.setPixelColor(0, pixels.Color(0, 255, 0));
+      pixels.setPixelColor(1, pixels.Color(75, 255, 0));
+      pixels.setPixelColor(2, pixels.Color(0, 255, 0));
+      pixels.setPixelColor(3, pixels.Color(75, 255, 0));
+      pixels.show();
+      alternate = false;
+    } else {
+      pixels.begin();
+      pixels.setPixelColor(0, pixels.Color(75, 255, 0));
+      pixels.setPixelColor(1, pixels.Color(0, 255, 0));
+      pixels.setPixelColor(2, pixels.Color(75, 255, 0));
+      pixels.setPixelColor(3, pixels.Color(0, 255, 0));
+      pixels.show();
+      alternate = true;
+    }
+  }
+}
+
+void color0() {
+  pixels.begin();
+  pixels.setPixelColor(0, pixels.Color(75, 255, 0));
+  pixels.setPixelColor(1, pixels.Color(0, 255, 0));
+  pixels.setPixelColor(2, pixels.Color(75, 255, 0));
+  pixels.setPixelColor(3, pixels.Color(0, 255, 0));
+  pixels.show();
 }
 
 void lineFollower() {
@@ -139,6 +179,7 @@ void lineFollower() {
           analogWrite(MOTOR_A_2, 0);
           analogWrite(MOTOR_B_1, 0);
           analogWrite(MOTOR_B_2, 0);
+          color0();
         }
         
       } else {
@@ -326,75 +367,90 @@ int average(int numbers[], int size)
 
 
 void loop() {  
-  
-  if (START) {
-    lineFollower();
-    //Serial.println(analogRead(LINE_SENSOR[0]));
-  }
-  else {
-    getDistance();
+  lineFollower();
+}
 
-    for (int i = 0; i < 3; i++) {
-      do {
-        delay(100);
-      } while (getDistance() < 15);
+void start()
+{
+  int blackLineSum = 0;
+  int blackLineCount = 0;
+
+  for (int i = 0; i < 3; i++)
+  {
+    do
+    {
+      digitalWrite(trigPin, HIGH);
+      delayMicroseconds(10);
+      digitalWrite(trigPin, LOW);
+
+      long duration = pulseIn(echoPin, HIGH);
+      distance = duration * 0.034 / 2; // Bereken de afstand in centimeters
     }
+      while(distance < 17);
+  }
+    color0();
+    colors();
+    analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_B_2, 255);
-    analogWrite(MOTOR_A_2, 230);
+    analogWrite(MOTOR_A_1, 0);
+    analogWrite(MOTOR_B_1, 0);
 
-    for (int i = 0; i < 6; i += 2) {
-      while (analogRead(LINE_SENSOR[0]) > LINE && analogRead(LINE_SENSOR[6]) > LINE) {
-        delay(1);
+    while(blackLineCount < 4)
+    {
+      while (true)
+      {
+        if (analogRead(LINE_SENSOR[3]) > LOWVALUE)
+        {
+          break;
+        }
       }
-
-      lineValues[i] = analogRead(LINE_SENSOR[3]);
-      delay(200);
-      
-      analogWrite(MOTOR_B_2, 150);
-      analogWrite(MOTOR_A_2, 130);
-      while (analogRead(LINE_SENSOR[0]) < LINE && analogRead(LINE_SENSOR[6]) < LINE) {
-        delay(1);
+      while (true)
+      {
+        if (analogRead(LINE_SENSOR[3]) < LOWVALUE)
+        {
+          break;
+        }
       }
-
-      lineValues[i + 1] = analogRead(LINE_SENSOR[3]);
-      delay(200);
-      
-      analogWrite(MOTOR_B_2, 150);
-      analogWrite(MOTOR_A_2, 130);
+        blackLineSum += getAverageLightValue();
+        blackLineCount++; 
     }
-    analogWrite(MOTOR_B_2, 200);
-    analogWrite(MOTOR_A_2, 180);
-    delay(200);
+      analogWrite(MOTOR_A_2, 0);
+      analogWrite(MOTOR_B_2, 0);
+      analogWrite(MOTOR_A_1, 0);
+      analogWrite(MOTOR_B_1, 0);
 
-    for (int i = 0; i < 8; i++) {
-      servo(GRIPPER_CLOSED);
+     LOWVALUE = blackLineSum / blackLineCount;
+     for (int i = 0; i < 100; i++)
+     {
+        delay(10);
+        servo(GRIPPER_CLOSED);
      }
-    
 
-    LINE = average(lineValues, 6) + 250;
-    
-    while (analogRead(LINE_SENSOR[4]) > LINE && analogRead(LINE_SENSOR[5]) > LINE) {
-      delay(1);
-    }
-    while (analogRead(LINE_SENSOR[4]) < LINE) {
-      delay(1);
-    }
-    if((lineCheck1 < LOWVALUE) && (lineCheck1 > HIGHVALUE) && (lineCheck2 < LOWVALUE) && (lineCheck2 > HIGHVALUE) && (lineCheck3 < LOWVALUE) && (lineCheck3 > HIGHVALUE) && (lineCheck4 < LOWVALUE) && (lineCheck4 > HIGHVALUE) &&
-      (lineCheck5 < LOWVALUE) && (lineCheck5 > HIGHVALUE) && (lineCheck6 < LOWVALUE) && (lineCheck6 > HIGHVALUE) && (lineCheck7 < LOWVALUE) && (lineCheck7 > HIGHVALUE) && (lineCheck8 < LOWVALUE) && (lineCheck8 > HIGHVALUE))
-    analogWrite(MOTOR_B_2, 0);
-    analogWrite(MOTOR_A_2, 0);
-    analogWrite(MOTOR_B_2, 220);
-    analogWrite(MOTOR_A_1, 255);
-    delay(500);
-
-    do {
-      analogWrite(MOTOR_B_2, 220);
+      analogWrite(MOTOR_A_2, 0);
+      analogWrite(MOTOR_B_2, 255);
       analogWrite(MOTOR_A_1, 255);
-      if (analogRead(LINE_SENSOR[6]) > LINE) {
-        break;
-      }
-    }
-    while (true);
-    START = true;
+      analogWrite(MOTOR_B_1, 0);
+      delay(500);
+      while(true)
+      {
+        if(analogRead(LINE_SENSOR[4]) > LOWVALUE)
+        {
+          break;
+        }
+       }
+  analogWrite(MOTOR_A_2, 0);
+  analogWrite(MOTOR_B_2, 0);
+  analogWrite(MOTOR_A_1, 0);
+  analogWrite(MOTOR_B_1, 0);
+}
+
+
+int getAverageLightValue()
+{
+  int sum = 0;
+  for (int i = 0; i < 8; i++)
+  {
+    sum += analogRead(LINE_SENSOR[i]);
   }
+  return sum / 8;
 }
