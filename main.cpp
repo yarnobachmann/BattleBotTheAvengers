@@ -172,9 +172,9 @@ unsigned long startTime; // Variable to store the start time for calibration
 const int calibrationDuration = 5000; // Calibration duration in milliseconds
 bool calibrated = false; // Flag to check if calibration is done
 
-const int stopDistance = 10; // Distance threshold to stop the robot (in cm)
-const int minRightDistance = 5; // Distance threshold to stop the robot (in cm)
-const int maxRightDistance = 7; // Distance threshold to stop the robot (in cm)
+const int stopDistance = 12; // Distance threshold to stop the robot (in cm)
+const int minRightDistance = 8; // Distance threshold to stop the robot (in cm)
+const int maxRightDistance = 10; // Distance threshold to stop the robot (in cm)
 
 int rightOffset = 100; // RightOffset default value set to 100
 int leftOffset = 100; // LeftOffset default value set to 100
@@ -183,9 +183,11 @@ bool hasStartEnded = false;
 bool startTrigger = false;
 bool continueRightSensor = true;
 
-const int reflectionThreshold = 500; // Adjust this threshold based on your sensor's characteristics
+int LIGHT_VALUE = 700; // Adjust this threshold based on your sensor's characteristics
 
 long duration, distance; // Variables to store the duration and distance for the HC-SR04 sensor'
+long durationRight, distanceRight; // Variables to store the duration and distance for the HC-SR04 sensor'
+
 
 float gyroX = 0.0;
 float gyroY = 0.0;
@@ -228,7 +230,14 @@ void setup() {
 void loop() {
   if (!hasStartEnded)
   {
-    gripper(GRIPPER_OPEN);
+    for (int i = 0; i < 100; i++)
+    {
+        delay(10);
+        gripper(GRIPPER_OPEN);
+    }
+
+    start();
+
     hasStartEnded = true;
   }
 
@@ -239,7 +248,7 @@ void loop() {
   } 
 
   // readLineSensor();
- 
+
   distanceSensor();
 
   if (continueRightSensor)
@@ -247,6 +256,86 @@ void loop() {
     distanceSensorRight();
   }
 
+}
+
+//-----------------------------------[Start]---------------------------------
+
+void start()
+{
+  Serial.print("Current LIGHT_VALUE: ");
+  Serial.println(LIGHT_VALUE);
+  
+  int blackLineSum = 0;
+  int blackLineCount = 0;
+  
+  for (int i = 0; i < 3; i++)
+  {
+    do
+    {
+      digitalWrite(TRIGGER_PIN, HIGH);
+      delayMicroseconds(10);
+      digitalWrite(TRIGGER_PIN, LOW);
+    
+      long duration = pulseIn(ECHO_PIN, HIGH);
+      distance = duration * 0.034 / 2; // Bereken de afstand in centimeters
+    }  
+      while(distance > 24);
+  }
+
+    driveForward(200);
+
+    while(blackLineCount < 4)
+    {
+      while (true)
+      {
+        if (analogRead(sensorValues[3]) > LIGHT_VALUE)
+        {
+          break;
+        }
+      }
+      while (true)
+      {
+        if (analogRead(sensorValues[3]) < LIGHT_VALUE)
+        {
+          break;
+        }
+      }
+        blackLineSum += getAverageLightValue();    
+        blackLineCount++; 
+    }
+    driveStop();
+
+    LIGHT_VALUE = blackLineSum / blackLineCount;
+
+    Serial.print("New LIGHT_VALUE: ");
+    Serial.println(LIGHT_VALUE);
+    for (int i = 0; i < 100; i++)
+    {
+        delay(10);
+        gripper(GRIPPER_CLOSED);
+    }
+
+    driveLeft(200);
+    delay(500);
+    while(true)
+    {
+      if(analogRead(sensorValues[4]) > LIGHT_VALUE)
+      {
+        break;
+      }
+      }
+  driveStop();
+}
+
+
+int getAverageLightValue()
+{
+  int sum = 0;
+  for (int i = 0; i < 8; i++)
+  {
+    sum += analogRead(sensorValues[i]);
+  }
+  return sum / 8;
 }
 
 //-----------------------------------[Neopixel]-------------------------------------
@@ -365,12 +454,9 @@ void distanceSensor() {
     if (distance <= stopDistance) {
       continueRightSensor = false;
       tone(BUZZER, 1000, 100); 
-      driveLeft(200);
+      driveLeft(255);
+      delay(100);
     } 
-    else if (distance <= stopDistance + 10)
-    {
-      tone(BUZZER, 1000, 500);
-    }
     else
     {
       continueRightSensor = true;
@@ -386,8 +472,8 @@ void distanceReaderRight() {
   delayMicroseconds(10);
   digitalWrite(TRIGGER_PIN_RIGHT, LOW);
 
-  duration = pulseIn(ECHO_PIN_RIGHT, HIGH); // Reads pins
-  distance = (duration / 2) * 0.0343; // 343 m/s per second as speed of sound
+  durationRight = pulseIn(ECHO_PIN_RIGHT, HIGH); // Reads pins
+  distanceRight = (durationRight / 2) * 0.0343; // 343 m/s per second as speed of sound
 }
 
 void distanceSensorRight() {
@@ -416,25 +502,25 @@ void distanceSensorRight() {
 
   distanceReaderRight();
   
-  int difference = distance - minRightDistance;
+  int difference = distanceRight - minRightDistance;
   Serial.print("Verschil: ");
   Serial.println(difference);
-  if (distance >= minRightDistance && difference <= 10) {
-    setMotors(leftSpeed, 0, rightSpeed - 80, 0);
+  if (distanceRight >= minRightDistance && difference <= 10) {
+    setMotors(leftSpeed, 0, rightSpeed - 100, 0);
   } 
   else if (difference >= 8)
   {
+    setMotors(leftSpeed, 0, rightSpeed, 0);
+    delay(100);
     setMotors(leftSpeed, 0, 0, rightSpeed);
     delay(50);
   }
-  else if (difference <= 0)
+  else if (distanceRight <= maxRightDistance && difference <= 10) 
   {
-    setMotors(0, leftSpeed, rightSpeed, 0);
-    delay(50);
-  }
-  else if (distance <= maxRightDistance && difference <= 10) {
-    setMotors(leftSpeed - 80, 0, rightSpeed, 0);
-  } else {
+    setMotors(leftSpeed - 100, 0, rightSpeed, 0);
+  } 
+  else 
+  {
     // Drive the robot with the adjusted motor speeds
     setMotors(leftSpeed, 0, rightSpeed, 0);
   }
