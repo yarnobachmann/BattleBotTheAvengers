@@ -153,11 +153,7 @@ void lineFollower() {
 
   if (distanceUnder20)
   {
-      analogWrite(MOTOR_A_1, 0);
-      analogWrite(MOTOR_A_2, 0);
-      analogWrite(MOTOR_B_1, 0);
-      analogWrite(MOTOR_B_2, 0);
-      delay(1000);
+      avoidObstacle();
   }
 
   
@@ -167,7 +163,7 @@ void lineFollower() {
       startTime = millis(); // Start the timer
     } else {
       currentTime = millis(); // Update the current time
-      if (currentTime - startTime >= 200) {
+      if (currentTime - startTime >= 150) {
         analogWrite(MOTOR_A_1, 255);
         analogWrite(MOTOR_A_2, 0);
         analogWrite(MOTOR_B_1, 255);
@@ -197,22 +193,24 @@ void lineFollower() {
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_2, 225);
     startTime = 0;
-    //delay(10);
+    delay(100);
     lastValueA1 = 190;
     lastValueA2 = 0;
     lastValueB1 = 0;
     lastValueB2 = 225;
+    colors();
   }
   else if ((lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE) && (lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE) && (lineCheck6 > LOWVALUE) && (lineCheck6 < HIGHVALUE) && (lineCheck7 > LOWVALUE) && (lineCheck7 < HIGHVALUE) && (lineCheck8 > LOWVALUE) && (lineCheck8 < HIGHVALUE)){
     analogWrite(MOTOR_B_1, 0);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_2, 255);
     startTime = 0;
-   // delay(10);
+    delay(100);
     lastValueA1 = 0;
     lastValueA2 = 255;
     lastValueB1 = 220;
     lastValueB2 = 0;
+    colors();
   }
   else if ((lineCheck1 > LOWVALUE) && (lineCheck1 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 0);
@@ -224,6 +222,7 @@ void lineFollower() {
     lastValueA2 = 0;
     lastValueB1 = 0;
     lastValueB2 = 190;
+    colors();
   }
   else if ((lineCheck2 > LOWVALUE) && (lineCheck2 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 80);
@@ -235,6 +234,7 @@ void lineFollower() {
     lastValueA2 = 0;
     lastValueB1 = 0;
     lastValueB2 = 225;
+    colors();
   }
   else if ((lineCheck3 > LOWVALUE) && (lineCheck3 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 160);
@@ -246,6 +246,7 @@ void lineFollower() {
     lastValueA2 = 0;
     lastValueB1 = 0;
     lastValueB2 = 225;
+    colors();
   }
   else if ((lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 255);
@@ -257,6 +258,7 @@ void lineFollower() {
     lastValueA2 = 255;
     lastValueB1 = 0;
     lastValueB2 = 220;
+    colors();
   }
   else if ((lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 255);
@@ -268,6 +270,7 @@ void lineFollower() {
     lastValueA2 = 0;
     lastValueB1 = 0;
     lastValueB2 = 225;
+    colors();
   }
   else if((lineCheck6 > LOWVALUEUNIQUE) && (lineCheck6 < HIGHVALUE)){
     analogWrite(MOTOR_B_2, 160);
@@ -279,6 +282,7 @@ void lineFollower() {
     lastValueA2 = 225;
     lastValueB1 = 190;
     lastValueB2 = 0;
+    colors();
   }
   else if((lineCheck7 > LOWVALUE) && (lineCheck7 < HIGHVALUE)){
     analogWrite(MOTOR_B_2, 80);
@@ -290,6 +294,7 @@ void lineFollower() {
     lastValueA2 = 225;
     lastValueB1 = 190;
     lastValueB2 = 0;
+    colors();
   }
   else if((lineCheck8 > LOWVALUE) && (lineCheck8 < HIGHVALUE)){
     analogWrite(MOTOR_B_2, 0);
@@ -301,12 +306,14 @@ void lineFollower() {
     lastValueA2 = 225;
     lastValueB1 = 190;
     lastValueB2 = 0;
+    colors();
   }
   else{
     analogWrite(MOTOR_A_1, lastValueA1);
     analogWrite(MOTOR_A_2, lastValueA2);
     analogWrite(MOTOR_B_1, lastValueB1);
     analogWrite(MOTOR_B_2, lastValueB2);
+    colors();
   } 
 }
 
@@ -342,21 +349,50 @@ float getDistance()
 
 void avoidObstacle()
 {
-    analogWrite(MOTOR_B_2, 255);
-    analogWrite(MOTOR_A_2, 200);
+    analogWrite(MOTOR_B_2, 0);
+    analogWrite(MOTOR_A_2, 0);
     analogWrite(MOTOR_B_1, 0);
     analogWrite(MOTOR_A_1, 0);
 
-    delay(500);
+    colors();
 
-    analogWrite(MOTOR_B_2, 200);
+    delay(100);
+
+    analogWrite(MOTOR_B_1, 0);
+    analogWrite(MOTOR_A_1, 255);
+    analogWrite(MOTOR_B_2, 255);
+    analogWrite(MOTOR_A_2, 0);
+
+    colors();
+
+    delay(350);
+
+    analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_B_1, 0);
     analogWrite(MOTOR_A_1, 0);
 
-    delay (500);
+    colors();
 
-    lineFollower();
+    delay(1000);
+
+    analogWrite(MOTOR_B_1, 155);
+    analogWrite(MOTOR_A_1, 0);
+    analogWrite(MOTOR_B_2, 0);
+    analogWrite(MOTOR_A_2, 255);
+
+    colors();
+
+    delay(650);
+
+    analogWrite(MOTOR_B_2, 255);
+    analogWrite(MOTOR_A_2, 205);
+    analogWrite(MOTOR_B_1, 0);
+    analogWrite(MOTOR_A_1, 0);
+
+    colors();
+
+    delay(800);
 }
 
 int average(int numbers[], int size)
@@ -376,6 +412,7 @@ void loop() {
 
 void start()
 {
+  color0();
   int blackLineSum = 0;
   int blackLineCount = 0;
 
@@ -426,7 +463,7 @@ void start()
      LOWVALUE = blackLineSum / blackLineCount;
      for (int i = 0; i < 100; i++)
      {
-        delay(10);
+        delay(1);
         servo(GRIPPER_CLOSED);
      }
 
