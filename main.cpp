@@ -4,10 +4,6 @@
 
 #include <Adafruit_NeoPixel.h>
 
-#include <Wire.h>
-
-#include <Adafruit_LSM6DS3TRC.h>
-
 #ifdef __AVR__#include <avr/power.h>
 
 #endif
@@ -51,6 +47,8 @@ void dropCone();
 #define MOTOR_LEFT_FORWARD 11 // Motor pin A2
 #define MOTOR_RIGHT_FORWARD 10 // Motor pin B1
 #define MOTOR_RIGHT_BACKWARD 9 // Motor pin B2
+#define MOTOR_RIGHT_READ A4 // Motor pin B1
+#define MOTOR_RIGHT_READ A5// Motor pin B2
 
 #define GRIPPER_PIN 6 // gripper GR
 #define GRIPPER_OPEN 1600 // pulse length servo open
@@ -168,7 +166,6 @@ int sensorValues[numberOfSensors]; // Array to store the sensor values
 const int BLACK = 900;
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_RGB + NEO_KHZ800);
-Adafruit_LSM6DS3TRC lsm6ds3;
 
 //-----------------------------------[Variables]---------------------------------
 
@@ -192,12 +189,6 @@ int LIGHT_VALUE = 700; // Adjust this threshold based on your sensor's character
 long duration, distance; // Variables to store the duration and distance for the HC-SR04 sensor'
 long durationRight, distanceRight; // Variables to store the duration and distance for the HC-SR04 sensor'
 
-
-float gyroX = 0.0;
-float gyroY = 0.0;
-float gyroZ = 0.0;
-
-bool gyroInitialized = false; // Flag to track if gyro has been initialized
 static unsigned long timeToStartDetectingFinish;
 
 
@@ -225,7 +216,6 @@ void setup() {
   }
 
   Serial.begin(9600);
-  initializeGyro();
   // channel();
 }
 
@@ -401,22 +391,8 @@ void distanceReaderRight() {
 void distanceSensorRight() {
   static unsigned long timer;
 
-  // Get sensor events
-  sensors_event_t accel;
-  sensors_event_t gyro;
-  sensors_event_t temp;
-  lsm6ds3.getEvent( & accel, & gyro, & temp);
-
-  // Calculate the tilt angle based on the accelerometer data
-  double tiltAngle = atan2(accel.acceleration.y, accel.acceleration.z) * (180.0 / PI);
-
-  // Use proportional control to adjust motor speeds based on tilt angle
-  double correctionFactor = 0.05; // Adjust this value for the desired correction speed
-  double correction = tiltAngle * correctionFactor;
-
-  // Adjust the motor speeds based on the correction
-  int leftSpeed = 230 - correction;
-  int rightSpeed = 230 - correction;
+  int leftSpeed = 230;
+  int rightSpeed = 230;
 
   // Limit the motor speeds to the valid range (0-255)
   leftSpeed = constrain(leftSpeed, 0, 255);
@@ -618,46 +594,9 @@ void dropCone()
 }
 
 
-//-----------------------------------[Gyro sensor]------------------------
+//-----------------------------------[Pulse sensor]------------------------
 
-void initializeGyro() {
-  if (!gyroInitialized) { // Check if gyro has not been initialized yet
-    while (!Serial)
-      delay(1000); // will pause Zero, Leonardo, etc until serial console opens
 
-    Serial.println("Adafruit LSM6DS3TR-C test!");
-
-    if (!lsm6ds3.begin_I2C()) {
-      Serial.println("Failed to find LSM6DS3TR-C chip");
-      while (1) {
-        delay(1000);
-      }
-    }
-
-    Serial.println("LSM6DS3TR-C Found!");
-
-    // Initialize the gyro sensor once
-    sensors_event_t accel;
-    sensors_event_t gyro;
-    sensors_event_t temp;
-    lsm6ds3.getEvent(&accel, &gyro, &temp);
-
-    // Store the initial gyro readings in global variables
-    gyroX = gyro.gyro.x;
-    gyroY = gyro.gyro.y;
-    gyroZ = gyro.gyro.z;
-
-    // Print initial gyro readings for debugging
-    Serial.print("Initial Gyro X: ");
-    Serial.println(gyroX);
-    Serial.print("Initial Gyro Y: ");
-    Serial.println(gyroY);
-    Serial.print("Initial Gyro Z: ");
-    Serial.println(gyroZ);
-
-    gyroInitialized = true; // Set the flag to true to indicate gyro has been initialized
-  }
-}
 
 //-----------------------------------[Speaker]--------------------------------------
 
