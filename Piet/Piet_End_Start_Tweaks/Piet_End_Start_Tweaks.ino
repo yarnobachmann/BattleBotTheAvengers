@@ -28,6 +28,8 @@ bool currentLightState = false;
 unsigned long previousMillis = 0;
 const long interval = 100; // Interval in milliseconden
 
+unsigned long endingTimer = 0;
+
 void setup() {
   // put your setup code here, to run once:
   pinMode(GRIPPER_PIN, OUTPUT);
@@ -53,10 +55,51 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  forwardLights();
-  followTheLine();
-  
+  if (shouldEnd())
+  {
+    theEnd();
+  }
+  else
+  {
+    forwardLights();
+    followTheLine();
+  }
 }
+    
+  bool shouldEnd()
+{
+  int blackDetected = 0;
+  for (int i = 0; i < 8; i++)
+  {
+    if (analogRead(LIGHT_SENSOR[i]) > LIGHT_VALUE)
+    {
+      blackDetected++;
+    }
+  }
+
+  if (blackDetected >= 5)
+  {
+    if (endingTimer == 0)
+    {
+      endingTimer = millis();
+    }
+    else
+    {
+      if (millis() - endingTimer >= 500)
+      {
+        return true;
+      }
+    }
+  }
+  else
+  {
+    endingTimer = 0;
+  }
+
+  return false;
+ }
+
+
 
 void followTheLine()
 {
@@ -82,6 +125,19 @@ void followTheLine()
   }
 }
 
+void theEnd()
+{
+  motorStop();
+  for (int i = 0; i < 8; i++)
+  {
+    servo(GRIPPER_OPEN);
+  }
+  delay(1000);
+  driveBackwards(210);
+  delay(1000);
+  motorStop();
+  delay(1000);
+}
 
 void gripperToggle() 
 {
@@ -152,6 +208,15 @@ void turnRight(int speed)
   analogWrite(MOTOR_LEFT_FORWARD, speed - MOTOR_AFWIJKING);
   analogWrite(MOTOR_RIGHT_BACKWARD, speed);
   analogWrite(MOTOR_RIGHT_FORWARD, 0);
+}
+
+
+void driveBackwards(int speed)
+{
+  analogWrite(MOTOR_LEFT_BACKWARD, speed - MOTOR_AFWIJKING);
+  analogWrite(MOTOR_LEFT_FORWARD, 0);
+  analogWrite(MOTOR_RIGHT_BACKWARD, speed);
+  analogWrite(MOTOR_RIGHT_FORWARD, 0); 
 }
 
 void motorStop()
@@ -368,7 +433,6 @@ void forwardLights()
       pixels.setPixelColor(3, pixels.Color(255, 255, 255));
       pixels.show();
       currentLightState = !currentLightState;
-
     }
   }
 }

@@ -43,38 +43,6 @@ void loop() {
   }
 }
 
-bool shouldEnd()
-{
-  int blackDetected = 0;
-  for (int i = 0; i < 8; i++)
-  {
-    if (analogRead(LIGHT_SENSOR[i]) > LIGHT_VALUE)
-    {
-      blackDetected++;
-    }
-  }
-
-  if (blackDetected >= 5)
-  {
-    if (endingTimer == 0)
-    {
-      endingTimer = millis();
-    }
-    else
-    {
-      if (millis() - endingTimer >= 500)
-      {
-        return true;
-      }
-    }
-  }
-  else
-  {
-    endingTimer = 0;
-  }
-
-  return false;
- }
 
 void followTheLine()
 {
