@@ -1,12 +1,7 @@
 //-----------------------------------[Include libraries]----------------------------
 
 #include <Arduino.h>
-
 #include <Adafruit_NeoPixel.h>
-
-#ifdef __AVR__#include <avr/power.h>
-
-#endif
 
 //-----------------------------------[Predeclare functions]-------------------------
 
@@ -35,6 +30,10 @@ boolean isOnLightColor();
 void startup();
 void detectFinish();
 void dropCone();
+boolean isStuck();
+void incrementPulseLeft();
+boolean isAnythingBlack();
+void playWiiTheme();
 
 //-----------------------------------[Declare pins]-------------------------------
 
@@ -48,7 +47,7 @@ void dropCone();
 #define MOTOR_RIGHT_FORWARD 10 // Motor pin B1
 #define MOTOR_RIGHT_BACKWARD 9 // Motor pin B2
 #define MOTOR_RIGHT_READ 2 // Motor pin B1
-#define MOTOR_RIGHT_READ 3// Motor pin B2
+#define MOTOR_LEFT_READ 3// Motor pin B2
 
 #define GRIPPER_PIN 6 // gripper GR
 #define GRIPPER_OPEN 1600 // pulse length servo open
@@ -65,97 +64,6 @@ void dropCone();
 #define TRIGGER_PIN_RIGHT 5 // HC-SR04 trigger pin
 #define ECHO_PIN_RIGHT 7 // HC-SR04 echo pin
 
-#define NOTE_B0 31
-#define NOTE_C1 33
-#define NOTE_CS1 35
-#define NOTE_D1 37
-#define NOTE_DS1 39
-#define NOTE_E1 41
-#define NOTE_F1 44
-#define NOTE_FS1 46
-#define NOTE_G1 49
-#define NOTE_GS1 52
-#define NOTE_A1 55
-#define NOTE_AS1 58
-#define NOTE_B1 62
-#define NOTE_C2 65
-#define NOTE_CS2 69
-#define NOTE_D2 73
-#define NOTE_DS2 78
-#define NOTE_E2 82
-#define NOTE_F2 87
-#define NOTE_FS2 93
-#define NOTE_G2 98
-#define NOTE_GS2 104
-#define NOTE_A2 110
-#define NOTE_AS2 117
-#define NOTE_B2 123
-#define NOTE_C3 131
-#define NOTE_CS3 139
-#define NOTE_D3 147
-#define NOTE_DS3 156
-#define NOTE_E3 165
-#define NOTE_F3 175
-#define NOTE_FS3 185
-#define NOTE_G3 196
-#define NOTE_GS3 208
-#define NOTE_A3 220
-#define NOTE_AS3 233
-#define NOTE_B3 247
-#define NOTE_C4 262
-#define NOTE_CS4 277
-#define NOTE_D4 294
-#define NOTE_DS4 311
-#define NOTE_E4 330
-#define NOTE_F4 349
-#define NOTE_FS4 370
-#define NOTE_G4 392
-#define NOTE_GS4 415
-#define NOTE_A4 440
-#define NOTE_AS4 466
-#define NOTE_B4 494
-#define NOTE_C5 523
-#define NOTE_CS5 554
-#define NOTE_D5 587
-#define NOTE_DS5 622
-#define NOTE_E5 659
-#define NOTE_F5 698
-#define NOTE_FS5 740
-#define NOTE_G5 784
-#define NOTE_GS5 831
-#define NOTE_A5 880
-#define NOTE_AS5 932
-#define NOTE_B5 988
-#define NOTE_C6 1047
-#define NOTE_CS6 1109
-#define NOTE_D6 1175
-#define NOTE_DS6 1245
-#define NOTE_E6 1319
-#define NOTE_F6 1397
-#define NOTE_FS6 1480
-#define NOTE_G6 1568
-#define NOTE_GS6 1661
-#define NOTE_A6 1760
-#define NOTE_AS6 1865
-#define NOTE_B6 1976
-#define NOTE_C7 2093
-#define NOTE_CS7 2217
-#define NOTE_D7 2349
-#define NOTE_DS7 2489
-#define NOTE_E7 2637
-#define NOTE_F7 2794
-#define NOTE_FS7 2960
-#define NOTE_G7 3136
-#define NOTE_GS7 3322
-#define NOTE_A7 3520
-#define NOTE_AS7 3729
-#define NOTE_B7 3951
-#define NOTE_C8 4186
-#define NOTE_CS8 4435
-#define NOTE_D8 4699
-#define NOTE_DS8 4978
-#define REST 0
-
 const int numberOfSensors = 6; // Number of sensors used
 int sensorPins[numberOfSensors] = {
   A1,A6,A7,A3,A2,A0
@@ -169,11 +77,14 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_RGB + NEO_KHZ800
 
 //-----------------------------------[Variables]---------------------------------
 
+const float notes[] = {659.25, 622.25, 659.25, 0, 659.25, 0, 659.25, 0, 523.25, 0, 0, 493.88, 0, 0, 523.25, 0, 0, 392, 0, 0, 466.16, 0, 0, 440, 0, 0, 0, 0, 0, 466.16, 0, 0, 392, 0, 0, 311.13, 0, 0, 369.99, 0, 0, 311.13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 311.13, 0, 0, 369.99, 0, 0, 392, 0, 0, 466.16, 0, 0, 392, 0, 0, 311.13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+const int durations[] = {250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250};
+
 unsigned long startTime; // Variable to store the start time for calibration
 const int calibrationDuration = 5000; // Calibration duration in milliseconds
 bool calibrated = false; // Flag to check if calibration is done
 
-const int stopDistance = 11; // Distance threshold to stop the robot (in cm)
+const int stopDistance = 10; // Distance threshold to stop the robot (in cm)
 const int minRightDistance = 8; // Distance threshold to stop the robot (in cm)
 const int maxRightDistance = 10; // Distance threshold to stop the robot (in cm)
 
@@ -194,6 +105,7 @@ static unsigned long timeToStartDetectingFinish;
 long pulsesLeft                 = 0;
 long pulsesRight                = 0;
 long stuckTimer                 = 0;
+bool isGripperOpen = false;
 
 
 //-----------------------------------[Setup function]---------------------------
@@ -206,6 +118,8 @@ void setup() {
   pinMode(MOTOR_LEFT_BACKWARD, OUTPUT);
   pinMode(MOTOR_RIGHT_BACKWARD, OUTPUT);
   pinMode(MOTOR_RIGHT_FORWARD, OUTPUT);
+
+  attachInterrupt(digitalPinToInterrupt(MOTOR_LEFT_READ), incrementPulseLeft, CHANGE);
   // Echo sensor pins
   pinMode(TRIGGER_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
@@ -214,23 +128,21 @@ void setup() {
   // Servo pins
   pinMode(GRIPPER_PIN, OUTPUT);
   digitalWrite(GRIPPER_PIN, LOW);
+  pinMode(BUZZER, OUTPUT);
   // Reflection sensor pins
   for (int i = 0; i <= numberOfSensors; i++) {
     pinMode(sensorPins[i], INPUT);
   }
 
   Serial.begin(9600);
-  // channel();
 }
 
 //-----------------------------------[Loop function]----------------------------
 
 void loop() {
-
   if (!hasStartEnded)
   {
-    startup();
-    
+    startup(); 
   }
 
   distanceSensor();  
@@ -240,6 +152,13 @@ void loop() {
     distanceSensorRight();
   }
 
+  if (isStuck())
+  {
+    driveBack(255);
+    delay(800);
+    stuckTimer = millis() + 500;
+  }
+
   if (timeToStartDetectingFinish < millis())
   {
     detectFinish();
@@ -247,9 +166,24 @@ void loop() {
 
   if (!startTrigger)
   {
-
     startTrigger = true;
   } 
+  
+  static unsigned long timer;
+
+  if (millis() > timer) {
+
+    if (isGripperOpen)
+    {
+      gripper(GRIPPER_OPEN);
+    }
+    else
+    {
+      gripper(GRIPPER_CLOSED);
+    }
+    
+    timer = millis() + 500;
+  }
 }
 
 //-----------------------------------[Start&End]---------------------------------
@@ -281,6 +215,7 @@ void startup()
     }  
       while(distance > 24);
   }
+  delay(500);
   driveForward(220);
   //Count the lines it passes whilst driving forward
   //When it reaches 7 switches, go to the next phase
@@ -328,13 +263,30 @@ void startup()
 
 void detectFinish()
 {
-  if(sensorValues[5] >= BLACK || sensorValues[0] >= BLACK)
+  if(isAnythingBlack())
   {
-    while(isOnLightColor())
+    if (isOnLightColor())
     {
-      readLineSensor();
-    }  
-    dropCone();
+     while(true)
+      {
+        bool allBlack = true;
+        for (int i = 0; i < numberOfSensors; i++) {
+          if (sensorValues[i] < BLACK) {
+            allBlack = false;
+            break;
+          }
+        }
+        if (allBlack)
+        {
+          dropCone();
+          break;
+        }
+        else
+        {
+          readLineSensor();
+        }  
+      }  
+    }
   }
 }
 
@@ -348,6 +300,10 @@ void dropCone()
     driveBack(255);
   }
   driveStop();
+  // Call the function to play the Wii theme
+  playWiiTheme();
+  // Add a delay before replaying the theme
+  delay(2000);
   while(true)
   {
   }
@@ -364,17 +320,24 @@ void setPixelColor(int pixel, uint8_t red, uint8_t green, uint8_t blue) {
 //-----------------------------------[Gripper servo]--------------------------------
 
 void gripper(int pulse) {
-  static unsigned long timer;
   static int pulse1;
+  if (pulse == GRIPPER_OPEN)
+  {
+    isGripperOpen = true;
+  }
+  else if (pulse == GRIPPER_CLOSED)
+  {
+    isGripperOpen = false;
+  }
+  
   if (pulse > 0) {
     pulse1 = pulse;
   }
-  if (millis() > timer) {
+  
     digitalWrite(GRIPPER_PIN, HIGH);
     delayMicroseconds(pulse1);
     digitalWrite(GRIPPER_PIN, LOW);
-    timer = millis() + GRIPPER_INTERVAL;
-  }
+  
 }
 
 //-----------------------------------[Wheels motor]---------------------------
@@ -466,18 +429,16 @@ void distanceSensor() {
   int rightSpeed = 230;
 
   static unsigned long timer;
-  int interval = 200;
+  int interval = 500;
   if (millis() > timer) {
     distanceReader();
     if (distance <= stopDistance) {
       continueRightSensor = false;
       tone(BUZZER, 1000, 100); 
-      setMotors(0, leftSpeed, rightSpeed, 0);
-    } 
-    else
-    {
+      setMotors(0, leftSpeed - 20, rightSpeed, 0);
+      delay(500);
       continueRightSensor = true;
-    }
+    } 
     timer = millis() + interval;
   }
 }
@@ -494,8 +455,6 @@ void distanceReaderRight() {
 }
 
 void distanceSensorRight() {
-  static unsigned long timer;
-
   int leftSpeed = 230;
   int rightSpeed = 230;
 
@@ -505,18 +464,21 @@ void distanceSensorRight() {
 
   distanceReaderRight();
   
+  static unsigned long timer;
+  int interval = 50;
+  if (millis() > timer) {
+
   int difference = distanceRight - minRightDistance;
-  Serial.print("Verschil: ");
-  Serial.println(difference);
+
   if (distanceRight >= minRightDistance && difference <= 10) {
     setMotors(leftSpeed, 0, rightSpeed - 100, 0);
   } 
   else if (difference >= 8)
   {
     setMotors(leftSpeed, 0, rightSpeed, 0);
-    delay(100);
-    setMotors(leftSpeed, 0, 0, rightSpeed);
-    delay(50);
+    delay(80);
+    setMotors(leftSpeed -50, 0, 0, rightSpeed);
+    delay(40);
   }
   else if (distanceRight <= maxRightDistance && difference <= 10) 
   {
@@ -526,6 +488,8 @@ void distanceSensorRight() {
   {
     // Drive the robot with the adjusted motor speeds
     setMotors(leftSpeed, 0, rightSpeed, 0);
+  }
+  timer = millis() + interval;
   }
 }
 
@@ -592,6 +556,18 @@ boolean isOnLightColor()
   return lightColor;
 }
 
+boolean isAnythingBlack()
+{
+  for (int pin : sensorValues)
+  {
+    if(analogRead(pin) > 800)
+    {
+      return true;  
+    }
+  }  
+  return false;
+}
+
 //-----------------------------------[Pulse sensor]------------------------
 
 void incrementPulseLeft()
@@ -620,81 +596,23 @@ boolean isStuck()
     {
       return true;
     } 
-    timer = millis() + 100;
+    timer = millis() + 200;
   }
   return false;
 }
 
-//-----------------------------------[Speaker]--------------------------------------
-
-void defaultSpeakerValues(int tempo, int melody[], int melodyLength) {
-  // Calculate the number of notes based on the length of the melody array
-  int notes = melodyLength / 2;
-
-  // Calculate the duration of a whole note in milliseconds
-  int wholenote = (60000 * 4) / tempo;
-
-  int divider = 0, noteDuration = 0;
-
-  for (int thisNote = 0; thisNote < notes * 2; thisNote += 2) {
-    // Calculate the duration of each note
-    divider = melody[thisNote + 1];
-    if (divider > 0) {
-      // Regular note, just proceed
-      noteDuration = wholenote / divider;
-    } else if (divider < 0) {
-      // Dotted notes are represented with negative durations
-      noteDuration = wholenote / abs(divider);
-      noteDuration *= 1.5; // Increase the duration in half for dotted notes
+void playWiiTheme() {
+  // Loop through each note and play it with its duration
+  for (int i = 0; i < sizeof(notes) / sizeof(notes[0]); i++) {
+    if (notes[i] == 0) {
+      // Pause if the note is 0
+      delay(durations[i]);
+    } else {
+      // Play the note with its duration
+      tone(BUZZER, notes[i], durations[i]);
+      delay(durations[i]);
     }
-
-    // Play the note for 90% of the duration, leaving 10% as a pause
-    tone(BUZZER, melody[thisNote], noteDuration * 0.9);
-
-    // Wait for the specified duration before playing the next note
-    delay(noteDuration);
-
-    // Stop the waveform generation before the next note
+    // Silence the buzzer after each note to prevent overlapping sounds
     noTone(BUZZER);
   }
-}
-
-void channel() {
-  int tempo = 114;
-
-  // notes of the moledy followed by the duration.
-  // a 4 means a quarter note, 8 an eighteenth , 16 sixteenth, so on
-  // !!negative numbers are used to represent dotted notes,
-  // so -4 means a dotted quarter note, that is, a quarter plus an eighteenth!!
-  int melody[] = {
-
-  // Pink Panther theme
-  // Score available at https://musescore.com/benedictsong/the-pink-panther
-  // Theme by Masato Nakamura, arranged by Teddy Mason
-
-  NOTE_FS4,8, REST,8, NOTE_A4,8, NOTE_CS5,8, REST,8,NOTE_A4,8, REST,8, NOTE_FS4,8, //1
-  NOTE_D4,8, NOTE_D4,8, NOTE_D4,8, REST,8, REST,4, REST,8, NOTE_CS4,8,
-  NOTE_D4,8, NOTE_FS4,8, NOTE_A4,8, NOTE_CS5,8, REST,8, NOTE_A4,8, REST,8, NOTE_F4,8,
-  NOTE_E5,-4, NOTE_DS5,8, NOTE_D5,8, REST,8, REST,4,
-  
-  NOTE_GS4,8, REST,8, NOTE_CS5,8, NOTE_FS4,8, REST,8,NOTE_CS5,8, REST,8, NOTE_GS4,8, //5
-  REST,8, NOTE_CS5,8, NOTE_G4,8, NOTE_FS4,8, REST,8, NOTE_E4,8, REST,8,
-  NOTE_E4,8, NOTE_E4,8, NOTE_E4,8, REST,8, REST,4, NOTE_E4,8, NOTE_E4,8,
-  NOTE_E4,8, REST,8, REST,4, NOTE_DS4,8, NOTE_D4,8, 
-
-  NOTE_CS4,8, REST,8, NOTE_A4,8, NOTE_CS5,8, REST,8,NOTE_A4,8, REST,8, NOTE_FS4,8, //9
-  NOTE_D4,8, NOTE_D4,8, NOTE_D4,8, REST,8, NOTE_E5,8, NOTE_E5,8, NOTE_E5,8, REST,8,
-  REST,8, NOTE_FS4,8, NOTE_A4,8, NOTE_CS5,8, REST,8, NOTE_A4,8, REST,8, NOTE_F4,8,
-  NOTE_E5,2, NOTE_D5,8, REST,8, REST,4,
-
-  NOTE_B4,8, NOTE_G4,8, NOTE_D4,8, NOTE_CS4,4, NOTE_B4,8, NOTE_G4,8, NOTE_CS4,8, //13
-  NOTE_A4,8, NOTE_FS4,8, NOTE_C4,8, NOTE_B3,4, NOTE_F4,8, NOTE_D4,8, NOTE_B3,8,
-  NOTE_E4,8, NOTE_E4,8, NOTE_E4,8, REST,4, REST,4, NOTE_AS4,4,
-  NOTE_CS5,8, NOTE_D5,8, NOTE_FS5,8, NOTE_A5,8, REST,8, REST,4, 
-};
-
-  int melodyLength = sizeof(melody) / sizeof(melody[0]);
-
-  defaultSpeakerValues(tempo, melody, melodyLength);
-
 }
