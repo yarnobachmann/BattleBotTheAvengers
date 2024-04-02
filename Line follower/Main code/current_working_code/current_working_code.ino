@@ -437,7 +437,7 @@ void avoidObstacle()
 
     colorsr();
 
-    delay(750);
+    delay(850);
 }
 
 int average(int numbers[], int size)
