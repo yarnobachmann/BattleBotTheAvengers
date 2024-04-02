@@ -41,14 +41,14 @@ void dropCone();
 #define PIN 13 // Digital pin connected to the Neopixel
 #define NUMPIXELS 4 // Number of Neopixels in your strip
 
-#define BUZZER 3
+#define BUZZER A5 // Buzzer pin
 
 #define MOTOR_LEFT_BACKWARD 12 // Motor pin A1
 #define MOTOR_LEFT_FORWARD 11 // Motor pin A2
 #define MOTOR_RIGHT_FORWARD 10 // Motor pin B1
 #define MOTOR_RIGHT_BACKWARD 9 // Motor pin B2
-#define MOTOR_RIGHT_READ A4 // Motor pin B1
-#define MOTOR_RIGHT_READ A5// Motor pin B2
+#define MOTOR_RIGHT_READ 2 // Motor pin B1
+#define MOTOR_RIGHT_READ 3// Motor pin B2
 
 #define GRIPPER_PIN 6 // gripper GR
 #define GRIPPER_OPEN 1600 // pulse length servo open
@@ -62,7 +62,7 @@ void dropCone();
 
 #define TRIGGER_PIN 8 // HC-SR04 trigger pin
 #define ECHO_PIN 4 // HC-SR04 echo pin
-#define TRIGGER_PIN_RIGHT 2 // HC-SR04 trigger pin
+#define TRIGGER_PIN_RIGHT 5 // HC-SR04 trigger pin
 #define ECHO_PIN_RIGHT 7 // HC-SR04 echo pin
 
 #define NOTE_B0 31
@@ -173,7 +173,7 @@ unsigned long startTime; // Variable to store the start time for calibration
 const int calibrationDuration = 5000; // Calibration duration in milliseconds
 bool calibrated = false; // Flag to check if calibration is done
 
-const int stopDistance = 12; // Distance threshold to stop the robot (in cm)
+const int stopDistance = 11; // Distance threshold to stop the robot (in cm)
 const int minRightDistance = 8; // Distance threshold to stop the robot (in cm)
 const int maxRightDistance = 10; // Distance threshold to stop the robot (in cm)
 
@@ -190,6 +190,10 @@ long duration, distance; // Variables to store the duration and distance for the
 long durationRight, distanceRight; // Variables to store the duration and distance for the HC-SR04 sensor'
 
 static unsigned long timeToStartDetectingFinish;
+
+long pulsesLeft                 = 0;
+long pulsesRight                = 0;
+long stuckTimer                 = 0;
 
 
 //-----------------------------------[Setup function]---------------------------
@@ -228,7 +232,7 @@ void loop() {
     startup();
     
   }
- 
+
   distanceSensor();  
 
   if (continueRightSensor)
@@ -236,7 +240,7 @@ void loop() {
     distanceSensorRight();
   }
 
-   if (timeToStartDetectingFinish < millis())
+  if (timeToStartDetectingFinish < millis())
   {
     detectFinish();
   }
@@ -248,7 +252,106 @@ void loop() {
   } 
 }
 
-//-----------------------------------[Start]---------------------------------
+//-----------------------------------[Start&End]---------------------------------
+
+void startup()
+{
+  int linesPassed = 0;
+  boolean currentColor = false;
+  boolean hasGotPion = false;
+
+  for (int i = 0; i < 100; i++)
+    {
+        delay(10);
+        gripper(GRIPPER_OPEN);
+    }
+
+    for (int i = 0; i < 3; i++)
+  {
+    do
+    {
+      digitalWrite(TRIGGER_PIN, LOW); // Reset pin
+      delayMicroseconds(2);
+      digitalWrite(TRIGGER_PIN, HIGH); // High pulses for 10 ms
+      delayMicroseconds(10);
+      digitalWrite(TRIGGER_PIN, LOW);
+    
+      long duration = pulseIn(ECHO_PIN, HIGH);
+      distance = duration * 0.034 / 2; // Bereken de afstand in centimeters
+    }  
+      while(distance > 24);
+  }
+  driveForward(220);
+  //Count the lines it passes whilst driving forward
+  //When it reaches 7 switches, go to the next phase
+  while(linesPassed <= 6)
+  {
+    boolean detectedColor = isOnLightColor();
+    if (currentColor != detectedColor)
+    {
+      Serial.println("Detected line");
+      currentColor = detectedColor;
+      linesPassed++;
+    }
+  }
+  Serial.println("Waiting for the black square");
+  //Loop untill it's done with the startup sequence
+  while(true)
+  {
+    //Close the gripper once a black line is detected
+    if (!isOnLightColor())
+    {
+      gripper(GRIPPER_CLOSED);
+      hasGotPion = true;
+    }
+    //If it has the Pion, drive forward untill it reached the end of the black square
+    if (hasGotPion)
+    {
+      if (isOnLightColor())
+      {
+        //Stuff to follow the line for a small bit
+        driveLeft(255);
+        delay(300);
+        long timer = millis() + 2000;
+        while(timer > millis())
+        {
+          readLineSensor();
+        }
+        driveForward(180);
+        hasStartEnded = true;
+        break;
+      }
+    }
+  }
+  timeToStartDetectingFinish = millis() + 10000;
+}
+
+void detectFinish()
+{
+  if(sensorValues[5] >= BLACK || sensorValues[0] >= BLACK)
+  {
+    while(isOnLightColor())
+    {
+      readLineSensor();
+    }  
+    dropCone();
+  }
+}
+
+void dropCone()
+{
+  gripper(GRIPPER_OPEN);
+  unsigned long timer = millis() + 1000; 
+  while(timer > millis())
+  {
+    gripper(GRIPPER_OPEN);
+    driveBack(255);
+  }
+  driveStop();
+  while(true)
+  {
+  }
+}
 
 //-----------------------------------[Neopixel]-------------------------------------
 
@@ -359,6 +462,9 @@ void distanceReader() {
 }
 
 void distanceSensor() {
+  int leftSpeed = 230;
+  int rightSpeed = 230;
+
   static unsigned long timer;
   int interval = 200;
   if (millis() > timer) {
@@ -366,8 +472,7 @@ void distanceSensor() {
     if (distance <= stopDistance) {
       continueRightSensor = false;
       tone(BUZZER, 1000, 100); 
-      driveLeft(255);
-      delay(100);
+      setMotors(0, leftSpeed, rightSpeed, 0);
     } 
     else
     {
@@ -457,13 +562,6 @@ void readLineSensor() {
       gripperClosed = true;
     }
 
-    //Print sensor values
-    // Serial.print("Sensor Values: ");
-    // for (int i = 0; i < numberOfSensors; i++) {
-    //   Serial.print(sensorValues[i]);
-    //   Serial.print(" ");
-    // }
-
     if (sensorValues[2] >= BLACK || sensorValues[3] >= BLACK || sensorValues[4] >= BLACK || sensorValues[1] >= BLACK) {
       driveForward(200); //We start with slowest and then modify the speed to a decent speed
       Serial.print("forward");
@@ -481,78 +579,6 @@ void readLineSensor() {
   }
 }
 
-void startup()
-{
-  int linesPassed = 0;
-  boolean currentColor = false;
-  boolean hasGotPion = false;
-
-  for (int i = 0; i < 100; i++)
-    {
-        delay(10);
-        gripper(GRIPPER_OPEN);
-    }
-
-    for (int i = 0; i < 3; i++)
-  {
-    do
-    {
-      digitalWrite(TRIGGER_PIN, LOW); // Reset pin
-      delayMicroseconds(2);
-      digitalWrite(TRIGGER_PIN, HIGH); // High pulses for 10 ms
-      delayMicroseconds(10);
-      digitalWrite(TRIGGER_PIN, LOW);
-    
-      long duration = pulseIn(ECHO_PIN, HIGH);
-      distance = duration * 0.034 / 2; // Bereken de afstand in centimeters
-    }  
-      while(distance > 24);
-  }
-  driveForward(220);
-  //Count the lines it passes whilst driving forward
-  //When it reaches 7 switches, go to the next phase
-  while(linesPassed <= 6)
-  {
-    boolean detectedColor = isOnLightColor();
-    if (currentColor != detectedColor)
-    {
-      Serial.println("Detected line");
-      currentColor = detectedColor;
-      linesPassed++;
-    }
-  }
-  Serial.println("Waiting for the black square");
-  //Loop untill it's done with the startup sequence
-  while(true)
-  {
-    //Close the gripper once a black line is detected
-    if (!isOnLightColor())
-    {
-      gripper(GRIPPER_CLOSED);
-      hasGotPion = true;
-    }
-    //If it has the Pion, drive forward untill it reached the end of the black square
-    if (hasGotPion)
-    {
-      if (isOnLightColor())
-      {
-        //Stuff to follow the line for a small bit
-        driveLeft(255);
-        delay(600);
-        long timer = millis() + 2000;
-        while(timer > millis())
-        {
-          readLineSensor();
-        }
-        driveForward(180);
-        hasStartEnded = true;
-        break;
-      }
-    }
-  }
-  timeToStartDetectingFinish = millis() + 10000;
-}
-
 boolean isOnLightColor()
 {
   int averageColor = 0;
@@ -561,42 +587,43 @@ boolean isOnLightColor()
     averageColor += analogRead(sensorPin);
   }
   
-  int lightColor = (averageColor / 4) <= BLACK;
+  int lightColor = (averageColor / 6) <= BLACK;
 
   return lightColor;
 }
 
-void detectFinish()
-{
-  if(sensorValues[5] >= BLACK || sensorValues[0] >= BLACK)
-  {
-    while(isOnLightColor())
-    {
-      readLineSensor();
-    }  
-    dropCone();
-  }
-}
-
-void dropCone()
-{
-  gripper(GRIPPER_OPEN);
-  unsigned long timer = millis() + 1000; 
-  while(timer > millis())
-  {
-    gripper(GRIPPER_OPEN);
-    driveBack(255);
-  }
-  driveStop();
-  while(true)
-  {
-  }
-}
-
-
 //-----------------------------------[Pulse sensor]------------------------
 
+void incrementPulseLeft()
+{
+  pulsesLeft++;
+}
 
+boolean isStuck()
+{
+  static long previousPulses = pulsesLeft;
+  static long timer = millis();
+  static int amountOfFailedPulses;
+
+  if(timer <= millis())
+  {
+    if ((previousPulses + 3) < pulsesLeft)
+    {
+      amountOfFailedPulses = 0;
+      previousPulses = pulsesLeft;
+    }
+    else
+    {
+      amountOfFailedPulses++;
+    }
+    if (amountOfFailedPulses >= 20)
+    {
+      return true;
+    } 
+    timer = millis() + 100;
+  }
+  return false;
+}
 
 //-----------------------------------[Speaker]--------------------------------------
 
