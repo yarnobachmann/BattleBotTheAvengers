@@ -5,17 +5,20 @@
 
 //-----------------------------------[Predeclare functions]-------------------------
 
+// Motor control functions
 void setPixelColor(int pixel, uint8_t red, uint8_t green, uint8_t blue);
 void setMotors(int LFWD, int LBACK, int RFWD, int RBACK);
 void brakeLight();
 void forwardLight();
 void leftLight();
 void rightLight();
-void driveLeft(int speed);
-void driveRight(int speed);
-void driveForward(int speed);
-void driveBack(int speed);
+void driveLeft(int LFWD, int LBACK, int RFWD, int RBACK);
+void driveRight(int LFWD, int LBACK, int RFWD, int RBACK);
+void driveForward(int LFWD, int LBACK, int RFWD, int RBACK);
+void driveBack(int LFWD, int LBACK, int RFWD, int RBACK);
 void driveStop();
+
+// Sensor and input/output functions
 void distanceReader();
 void distanceSensor();
 void distanceReaderRight();
@@ -32,318 +35,269 @@ void detectFinish();
 void dropCone();
 boolean isStuck();
 void incrementPulseLeft();
+void incrementPulseRight();
 boolean isAnythingBlack();
 void playWiiTheme();
 
 //-----------------------------------[Declare pins]-------------------------------
 
-#define PIN 13 // Digital pin connected to the Neopixel
-#define NUMPIXELS 4 // Number of Neopixels in your strip
+#define PIN 13                 // Pin connected to Neopixel strip
+#define NUMPIXELS 4            // Number of Neopixels in the strip
 
-#define BUZZER A5 // Buzzer pin
+#define BUZZER A5             // Pin connected to buzzer
 
-#define MOTOR_LEFT_BACKWARD 12 // Motor pin A1
-#define MOTOR_LEFT_FORWARD 11 // Motor pin A2
-#define MOTOR_RIGHT_FORWARD 10 // Motor pin B1
-#define MOTOR_RIGHT_BACKWARD 9 // Motor pin B2
-#define MOTOR_RIGHT_READ 2 // Motor pin B1
-#define MOTOR_LEFT_READ 3// Motor pin B2
+#define MOTOR_LEFT_BACKWARD 12   // Pin for left motor backward control
+#define MOTOR_LEFT_FORWARD 11    // Pin for left motor forward control
+#define MOTOR_RIGHT_FORWARD 10   // Pin for right motor forward control
+#define MOTOR_RIGHT_BACKWARD 9   // Pin for right motor backward control
+#define MOTOR_RIGHT_READ 2       // Pin for right motor encoder
+#define MOTOR_LEFT_READ 3        // Pin for left motor encoder
 
-#define GRIPPER_PIN 6 // gripper GR
-#define GRIPPER_OPEN 1600 // pulse length servo open
-#define GRIPPER_CLOSED 930 // pulse length servo closed
-#define GRIPPER_INTERVAL 20 // time between pulse
-#define GRIPPER_TOGGLE 1000 // toggle gripper every second
+#define GRIPPER_PIN 6             // Pin for controlling gripper servo
+#define GRIPPER_OPEN 1600         // Pulse width to open the gripper
+#define GRIPPER_CLOSED 930        // Pulse width to close the gripper
 
-#define SERVO_MIN_PULSE 250 // pulse length for -90 degrees
-#define SERVO_MID_PULSE 1400 // pulse length for 0 degrees
-#define SERVO_MAX_PULSE 2400 // pulse length for 90 degrees
+#define SERVO_MIN_PULSE 250     // Minimum pulse width for servo control
+#define SERVO_MID_PULSE 1400    // Middle pulse width for servo control
+#define SERVO_MAX_PULSE 2400    // Maximum pulse width for servo control
 
-#define TRIGGER_PIN 8 // HC-SR04 trigger pin
-#define ECHO_PIN 4 // HC-SR04 echo pin
-#define TRIGGER_PIN_RIGHT 5 // HC-SR04 trigger pin
-#define ECHO_PIN_RIGHT 7 // HC-SR04 echo pin
+#define TRIGGER_PIN 8           // Pin for ultrasonic sensor trigger
+#define ECHO_PIN 4              // Pin for ultrasonic sensor echo
+#define TRIGGER_PIN_RIGHT 5     // Pin for right ultrasonic sensor trigger
+#define ECHO_PIN_RIGHT 7        // Pin for right ultrasonic sensor echo
+long duration, distance;          // Variables for ultrasonic sensor readings
+long durationRight, distanceRight;   // Variables for right ultrasonic sensor 
 
-const int numberOfSensors = 6; // Number of sensors used
-int sensorPins[numberOfSensors] = {
-  A1,A6,A7,A3,A2,A0
-}; // Analog pins for the sensors      
-int sensorValues[numberOfSensors]; // Array to store the sensor values
-#define SENSOR_INTERVAL 20 // time between pulse
+// Line sensor pins and threshold
+#define NUMBER_OF_SENSORS 6   // Number of line sensors
+#define SENSOR_INTERVAL 20   // Interval between line sensor readings
+#define BLACK_THRESHOLD 900      // Threshold for detecting black line
+int sensorPins[NUMBER_OF_SENSORS] = {A1, A6, A7, A3, A2, A0};
+int sensorValues[NUMBER_OF_SENSORS];                         // Values read from line sensors
 
-const int BLACK = 900;
+// Melody arrays
+const float notes[] = {659.25, 622.25, 659.25, 0, 659.25, 0, 659.25, 0, 523.25, 0, 0, 493.88, 0, 0, 523.25, 0, 0, 392, 0, 0, 466.16, 0, 0, 440, 0, 0, 0, 0, 0, 466.16, 0, 0, 392, 0, 0, 311.13, 0, 0, 369.99, 0, 0, 311.13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 311.13, 0, 0, 369.99, 0, 0, 392, 0, 0, 466.16, 0, 0, 392, 0, 0, 311.13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+const int durations[] = {250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250};
+
+// Timing and control variables
+#define STOP_DISTANCE 11                    // Distance threshold for stopping
+#define MIN_RIGHT_DISTANCE 10                // Minimum distance for right sensor
+#define MAX_RIGHT_DISTANCE 12               // Maximum distance for right sensor
+bool HAS_START_ENDED = false;               // Flag indicating startup completion
+#define START_TRIGGER false                 // Flag indicating startup trigger
+bool CONTINUE_RIGHT_SENSOR = true;          // Flag for continuing right sensor readings
+#define LIGHT_VALUE 700                     // Threshold for detecting light color
+#define TIME_TO_START_DETECTING_FINISH 10000 // Time to start detecting finish line
+long PULSES_LEFT = 0;                       // Counter for left wheel pulses
+long PULSES_RIGHT = 0;                      // Counter for right wheel pulses
+long stuckTimer = 0;                        // Timer for detecting robot stuck state
+static unsigned long timeToStartDetectingFinish;// Time to start detecting the finish line
+bool IS_GRIPPER_OPEN = false;               // Flag indicating gripper state
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_RGB + NEO_KHZ800);
 
-//-----------------------------------[Variables]---------------------------------
-
-const float notes[] = {659.25, 622.25, 659.25, 0, 659.25, 0, 659.25, 0, 523.25, 0, 0, 493.88, 0, 0, 523.25, 0, 0, 392, 0, 0, 466.16, 0, 0, 440, 0, 0, 0, 0, 0, 466.16, 0, 0, 392, 0, 0, 311.13, 0, 0, 369.99, 0, 0, 311.13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 311.13, 0, 0, 369.99, 0, 0, 392, 0, 0, 466.16, 0, 0, 392, 0, 0, 311.13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-const int durations[] = {250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250};
-
-unsigned long startTime; // Variable to store the start time for calibration
-const int calibrationDuration = 5000; // Calibration duration in milliseconds
-bool calibrated = false; // Flag to check if calibration is done
-
-const int stopDistance = 10; // Distance threshold to stop the robot (in cm)
-const int minRightDistance = 8; // Distance threshold to stop the robot (in cm)
-const int maxRightDistance = 10; // Distance threshold to stop the robot (in cm)
-
-int rightOffset = 100; // RightOffset default value set to 100
-int leftOffset = 100; // LeftOffset default value set to 100
-
-bool hasStartEnded = false;
-bool startTrigger = false;
-bool continueRightSensor = true;
-
-int LIGHT_VALUE = 700; // Adjust this threshold based on your sensor's characteristics
-
-long duration, distance; // Variables to store the duration and distance for the HC-SR04 sensor'
-long durationRight, distanceRight; // Variables to store the duration and distance for the HC-SR04 sensor'
-
-static unsigned long timeToStartDetectingFinish;
-
-long pulsesLeft                 = 0;
-long pulsesRight                = 0;
-long stuckTimer                 = 0;
-bool isGripperOpen = false;
-
-
 //-----------------------------------[Setup function]---------------------------
 
+// Setup function to initialize the robot's hardware and peripherals
 void setup() {
-  strip.begin(); // Initialize the Neopixel strip
-  strip.show(); // Initialize all pixels to 'off'
-  // Motor pins
-  pinMode(MOTOR_LEFT_FORWARD, OUTPUT);
-  pinMode(MOTOR_LEFT_BACKWARD, OUTPUT);
-  pinMode(MOTOR_RIGHT_BACKWARD, OUTPUT);
-  pinMode(MOTOR_RIGHT_FORWARD, OUTPUT);
+  strip.begin(); // Initialize NeoPixel strip
+  strip.show(); // Turn off all NeoPixels initially
+  pinMode(MOTOR_LEFT_FORWARD, OUTPUT); // Set left motor forward pin as output
+  pinMode(MOTOR_LEFT_BACKWARD, OUTPUT); // Set left motor backward pin as output
+  pinMode(MOTOR_RIGHT_BACKWARD, OUTPUT); // Set right motor backward pin as output
+  pinMode(MOTOR_RIGHT_FORWARD, OUTPUT); // Set right motor forward pin as output
+  attachInterrupt(digitalPinToInterrupt(MOTOR_RIGHT_READ), incrementPulseRight, CHANGE);// Attach interrupt for right motor encoder pulse counting
+  attachInterrupt(digitalPinToInterrupt(MOTOR_LEFT_READ), incrementPulseLeft, CHANGE);// Attach interrupt for left motor encoder pulse counting
+  pinMode(TRIGGER_PIN, OUTPUT); // Set trigger pin for front distance sensor as output
+  pinMode(ECHO_PIN, INPUT); // Set echo pin for front distance sensor as input
+  pinMode(TRIGGER_PIN_RIGHT, OUTPUT); // Set trigger pin for right distance sensor as output
+  pinMode(ECHO_PIN_RIGHT, INPUT); // Set echo pin for right distance sensor as input
+  pinMode(GRIPPER_PIN, OUTPUT); // Set gripper control pin as output
+  digitalWrite(GRIPPER_PIN, LOW); // Initialize gripper pin to low (closed position)
+  pinMode(BUZZER, OUTPUT); // Set pin for buzzer as output
 
-  attachInterrupt(digitalPinToInterrupt(MOTOR_LEFT_READ), incrementPulseLeft, CHANGE);
-  // Echo sensor pins
-  pinMode(TRIGGER_PIN, OUTPUT);
-  pinMode(ECHO_PIN, INPUT);
-  pinMode(TRIGGER_PIN_RIGHT, OUTPUT);
-  pinMode(ECHO_PIN_RIGHT, INPUT);
-  // Servo pins
-  pinMode(GRIPPER_PIN, OUTPUT);
-  digitalWrite(GRIPPER_PIN, LOW);
-  pinMode(BUZZER, OUTPUT);
-  // Reflection sensor pins
-  for (int i = 0; i <= numberOfSensors; i++) {
+  // Initialize line sensor pins as inputs
+  for (int i = 0; i < NUMBER_OF_SENSORS; i++) {
     pinMode(sensorPins[i], INPUT);
   }
 
-  Serial.begin(9600);
+  Serial.begin(9600); // Initialize serial communication for debugging
 }
 
 //-----------------------------------[Loop function]----------------------------
 
+// Main loop of the program
 void loop() {
-  if (!hasStartEnded)
-  {
-    startup(); 
+  // Check if startup sequence has ended
+  if (!HAS_START_ENDED) {
+    startup(); // Execute startup sequence
   }
 
-  distanceSensor();  
+  // Read distance sensor for obstacle detection in front
+  distanceSensor(); // Check distance sensor in front
 
-  if (continueRightSensor)
-  {
-    distanceSensorRight();
+  // Continue reading distance sensor for obstacle detection on the right
+  if (CONTINUE_RIGHT_SENSOR) {
+    distanceSensorRight(); // Check distance sensor on the right side
   }
 
-  if (isStuck())
-  {
-    driveBack(255);
-    delay(800);
-    stuckTimer = millis() + 500;
+  // Check if the robot is stuck
+  if (isStuck()) {
+    driveBack(0, 255, 0, 255); // Move backward to get unstuck
+    delay(800); // Delay to ensure movement
+    stuckTimer = millis() + 500; // Set timer for stuck condition
   }
 
-  if (timeToStartDetectingFinish < millis())
-  {
-    detectFinish();
+  // Start detecting finish line after a certain time
+  if (TIME_TO_START_DETECTING_FINISH < millis()) {
+    detectFinish(); // Execute finish line detection
   }
 
-  if (!startTrigger)
-  {
-    startTrigger = true;
-  } 
-  
+  // Set timer to trigger gripper action periodically
   static unsigned long timer;
-
   if (millis() > timer) {
-
-    if (isGripperOpen)
-    {
-      gripper(GRIPPER_OPEN);
+    // Toggle gripper state to open/close
+    if (IS_GRIPPER_OPEN) {
+      gripper(GRIPPER_OPEN); // Open gripper if closed
+    } else {
+      gripper(GRIPPER_CLOSED); // Close gripper if open
     }
-    else
-    {
-      gripper(GRIPPER_CLOSED);
-    }
-    
-    timer = millis() + 500;
+    timer = millis() + 500; // Set next gripper action time
   }
 }
 
 //-----------------------------------[Start&End]---------------------------------
 
-void startup()
-{
+// Function to initialize the robot and start the competition
+void startup() {
   int linesPassed = 0;
   boolean currentColor = false;
   boolean hasGotPion = false;
 
-  for (int i = 0; i < 100; i++)
-    {
-        delay(10);
-        gripper(GRIPPER_OPEN);
-    }
+  // Open gripper for initial 100 milliseconds
+  for (int i = 0; i < 100; i++) {
+    delay(10);
+    gripper(GRIPPER_OPEN);
+  }
 
-    for (int i = 0; i < 3; i++)
-  {
-    do
-    {
-      digitalWrite(TRIGGER_PIN, LOW); // Reset pin
+  // Move forward until obstacle is detected and stop at a safe distance
+  for (int i = 0; i < 3; i++) {
+    do {
+      digitalWrite(TRIGGER_PIN, LOW); 
       delayMicroseconds(2);
-      digitalWrite(TRIGGER_PIN, HIGH); // High pulses for 10 ms
+      digitalWrite(TRIGGER_PIN, HIGH); 
       delayMicroseconds(10);
       digitalWrite(TRIGGER_PIN, LOW);
     
       long duration = pulseIn(ECHO_PIN, HIGH);
-      distance = duration * 0.034 / 2; // Bereken de afstand in centimeters
-    }  
-      while(distance > 24);
+      distance = duration * 0.034 / 2; 
+    } while(distance > 24); // Repeat until distance is less than 24 cm
   }
-  delay(500);
-  driveForward(220);
-  //Count the lines it passes whilst driving forward
-  //When it reaches 7 switches, go to the next phase
-  while(linesPassed <= 6)
-  {
-    boolean detectedColor = isOnLightColor();
-    if (currentColor != detectedColor)
-    {
-      Serial.println("Detected line");
-      currentColor = detectedColor;
-      linesPassed++;
+  delay(500); // Delay for stability
+
+  // Drive forward until a certain number of lines are detected
+  driveForward(220, 0, 220, 0); // Move forward at specified speed
+  while(linesPassed <= 6) {
+    boolean detectedColor = isOnLightColor(); // Check if line is detected
+    if (currentColor != detectedColor) { // If color changes
+      currentColor = detectedColor; // Update current color
+      linesPassed++; // Increment lines passed
     }
   }
-  Serial.println("Waiting for the black square");
-  //Loop untill it's done with the startup sequence
-  while(true)
-  {
-    //Close the gripper once a black line is detected
-    if (!isOnLightColor())
-    {
-      gripper(GRIPPER_CLOSED);
-      hasGotPion = true;
+
+  // Move forward until the robot grasps the pylon
+  while(true) {
+    if (!isOnLightColor()) { // If not on light color
+      gripper(GRIPPER_CLOSED); // Close gripper to grasp pylon
+      hasGotPion = true; // Update status to indicate pylon is grasped
     }
-    //If it has the Pion, drive forward untill it reached the end of the black square
-    if (hasGotPion)
-    {
-      if (isOnLightColor())
-      {
-        //Stuff to follow the line for a small bit
-        driveLeft(255);
-        delay(300);
-        long timer = millis() + 2000;
-        while(timer > millis())
-        {
-          readLineSensor();
+    if (hasGotPion) { // If pylon is grasped
+      if (isOnLightColor()) { // If back on light color
+        driveLeft(0, 255, 255, 0); // Turn left to avoid obstacle
+        delay(300); // Delay for turn to complete
+        long timer = millis() + 2000; // Set timer for forward movement
+        while(timer > millis()) {
+          readLineSensor(); // Read line sensors while moving forward
         }
-        driveForward(180);
-        hasStartEnded = true;
-        break;
+        driveForward(180, 0, 180, 0); // Move forward at reduced speed
+        HAS_START_ENDED = true; // Update status to indicate startup is complete
+        break; // Exit loop
       }
     }
   }
-  timeToStartDetectingFinish = millis() + 10000;
+
+  timeToStartDetectingFinish = millis() + 10000; // Set time to start detecting finish line
 }
 
-void detectFinish()
-{
-  if(isAnythingBlack())
-  {
-    if (isOnLightColor())
-    {
-     while(true)
-      {
+// Function to drop the cone after completing the competition
+void dropCone() {
+  gripper(GRIPPER_OPEN); // Open gripper to release cone
+  unsigned long timer = millis() + 1000; // Set timer for cone release
+  while(timer > millis()) { // Repeat until timer expires
+    gripper(GRIPPER_OPEN); // Open gripper continuously to release cone
+    driveBack(0, 255, 0, 255); // Move backward while releasing cone
+  }
+  driveStop(); // Stop robot movement
+  playWiiTheme(); // Play victory melody
+  delay(2000); // Delay for melody to complete
+  while(true) { // Loop indefinitely
+  }
+}
+
+// Function to detect the finish line and trigger cone dropping
+void detectFinish() {
+  if(isAnythingBlack()) { // If any sensor detects black
+    if (isOnLightColor()) { // If on light color
+      while(true) { // Loop indefinitely
         bool allBlack = true;
-        for (int i = 0; i < numberOfSensors; i++) {
-          if (sensorValues[i] < BLACK) {
-            allBlack = false;
-            break;
+        for (int i = 0; i < NUMBER_OF_SENSORS; i++) { // Iterate through all sensors
+          if (sensorValues[i] < BLACK_THRESHOLD) { // If any sensor value is less than black threshold
+            allBlack = false; // Update flag to indicate not all sensors detect black
+            break; // Exit loop
           }
         }
-        if (allBlack)
-        {
-          dropCone();
-          break;
+        if (allBlack) { // If all sensors detect black
+          dropCone(); // Trigger cone dropping
+          break; // Exit loop
+        } else {
+          readLineSensor(); // Read line sensors while moving forward
         }
-        else
-        {
-          readLineSensor();
-        }  
       }  
     }
   }
 }
 
-void dropCone()
-{
-  gripper(GRIPPER_OPEN);
-  unsigned long timer = millis() + 1000; 
-  while(timer > millis())
-  {
-    gripper(GRIPPER_OPEN);
-    driveBack(255);
-  }
-  driveStop();
-  // Call the function to play the Wii theme
-  playWiiTheme();
-  // Add a delay before replaying the theme
-  delay(2000);
-  while(true)
-  {
-  }
-}
-
 //-----------------------------------[Neopixel]-------------------------------------
 
-// Set color for a specific Neopixel
+// Function to set color for a specific Neopixel
 void setPixelColor(int pixel, uint8_t red, uint8_t green, uint8_t blue) {
-  strip.setPixelColor(pixel, strip.Color(red, green, blue));
-  strip.show();
+  strip.setPixelColor(pixel, strip.Color(red, green, blue)); // Set color of specified Neopixel
+  strip.show(); // Update Neopixel display
 }
 
 //-----------------------------------[Gripper servo]--------------------------------
 
+// Function to control the gripper servo based on pulse width
 void gripper(int pulse) {
   static int pulse1;
-  if (pulse == GRIPPER_OPEN)
-  {
-    isGripperOpen = true;
-  }
-  else if (pulse == GRIPPER_CLOSED)
-  {
-    isGripperOpen = false;
+  if (pulse == GRIPPER_OPEN) { // If open command received
+    IS_GRIPPER_OPEN = true; // Set gripper status to open
+  } else if (pulse == GRIPPER_CLOSED) { // If close command received
+    IS_GRIPPER_OPEN = false; // Set gripper status to closed
   }
   
   if (pulse > 0) {
-    pulse1 = pulse;
+    pulse1 = pulse; // Set pulse width
   }
-  
-    digitalWrite(GRIPPER_PIN, HIGH);
-    delayMicroseconds(pulse1);
-    digitalWrite(GRIPPER_PIN, LOW);
-  
+  digitalWrite(GRIPPER_PIN, HIGH); // Activate gripper servo
+  delayMicroseconds(pulse1); // Apply pulse width
+  digitalWrite(GRIPPER_PIN, LOW); // Deactivate gripper servo
 }
 
 //-----------------------------------[Wheels motor]---------------------------
 
-// Sets motor power to input
 void setMotors(int LFWD, int LBACK, int RFWD, int RBACK) {
+  // Control motors with specified power levels with constrain
   analogWrite(MOTOR_LEFT_FORWARD, constrain(LFWD, 0, 255));
   analogWrite(MOTOR_LEFT_BACKWARD, constrain(LBACK, 0, 255));
   analogWrite(MOTOR_RIGHT_FORWARD, constrain(RFWD, 0, 255));
@@ -352,29 +306,34 @@ void setMotors(int LFWD, int LBACK, int RFWD, int RBACK) {
 
 //-----------------------------------[Drive functions]------------------------
 
-void driveLeft(int speed) {
+void driveLeft(int LFWD, int LBACK, int RFWD, int RBACK) {
+  // Control left wheel movement and turn on left light
   leftLight();
-  setMotors(0, speed, speed, 0);
+  setMotors(LFWD, LBACK, RFWD, RBACK);
 }
 
-void driveRight(int speed) {
-  setMotors(speed, 0, 0, speed);
+void driveRight(int LFWD, int LBACK, int RFWD, int RBACK) {
+  // Control right wheel movement and turn on right light
   rightLight();
+  setMotors(LFWD, LBACK, RFWD, RBACK);
 }
 
-void driveForward(int speed) {
-  setMotors(speed, 0, speed, 0);
+void driveForward(int LFWD, int LBACK, int RFWD, int RBACK) {
+  // Control forward movement and turn on forward light
   forwardLight();
+  setMotors(LFWD, LBACK, RFWD, RBACK);
 }
 
-void driveBack(int speed) {
-  setMotors(0, speed, 0, speed);
+void driveBack(int LFWD, int LBACK, int RFWD, int RBACK) {
+  // Control backward movement and turn on backward light
   brakeLight();
+  setMotors(LFWD, LBACK, RFWD, RBACK);
 }
 
 void driveStop() {
-  setMotors(0, 0, 0, 0);
+  // Stop robot movement and turn on backward light
   brakeLight();
+  setMotors(0, 0, 0, 0);
 }
 
 //-----------------------------------[Blinking lights]------------------------
@@ -413,206 +372,199 @@ void rightLight() {
 
 //-----------------------------------[Echo sensor]------------------------
 
+// Function to read distance from ultrasonic sensor
 void distanceReader() {
-  digitalWrite(TRIGGER_PIN, LOW); // Reset pin
+  digitalWrite(TRIGGER_PIN, LOW); 
   delayMicroseconds(2);
-  digitalWrite(TRIGGER_PIN, HIGH); // High pulses for 10 ms
+  digitalWrite(TRIGGER_PIN, HIGH); 
   delayMicroseconds(10);
   digitalWrite(TRIGGER_PIN, LOW);
 
-  duration = pulseIn(ECHO_PIN, HIGH); // Reads pins
-  distance = (duration / 2) * 0.0343; // 343 m/s per second as speed of sound
+  duration = pulseIn(ECHO_PIN, HIGH); // Measure the duration of the pulse
+  distance = (duration / 2) * 0.0343; // Convert duration to distance in centimeters
 }
 
+// Function to control behavior based on front distance
 void distanceSensor() {
-  int leftSpeed = 230;
-  int rightSpeed = 230;
-
   static unsigned long timer;
-  int interval = 500;
+  int interval = 400; // Read distance every 400 milliseconds
   if (millis() > timer) {
-    distanceReader();
-    if (distance <= stopDistance) {
-      continueRightSensor = false;
-      tone(BUZZER, 1000, 100); 
-      setMotors(0, leftSpeed - 20, rightSpeed, 0);
-      delay(500);
-      continueRightSensor = true;
+    distanceReader(); // Read distance from ultrasonic sensor
+    if (distance <= STOP_DISTANCE) { // If distance is less than stop threshold
+      CONTINUE_RIGHT_SENSOR = false; // Stop reading from right sensor
+      tone(BUZZER, 1000, 100); // Emit a warning tone
+      driveLeft(0, 210, 230, 0); // Turn left to avoid obstacle
+      delay(500); // Delay to allow turn to complete
+      CONTINUE_RIGHT_SENSOR = true; // Resume reading from right sensor
     } 
-    timer = millis() + interval;
+    timer = millis() + interval; // Set next reading time
   }
 }
 
+// Function to read distance from right ultrasonic sensor
 void distanceReaderRight() {
-  digitalWrite(TRIGGER_PIN_RIGHT, LOW); // Reset pin
+  digitalWrite(TRIGGER_PIN_RIGHT, LOW); 
   delayMicroseconds(2);
-  digitalWrite(TRIGGER_PIN_RIGHT, HIGH); // High pulses for 10 ms
+  digitalWrite(TRIGGER_PIN_RIGHT, HIGH); 
   delayMicroseconds(10);
   digitalWrite(TRIGGER_PIN_RIGHT, LOW);
 
-  durationRight = pulseIn(ECHO_PIN_RIGHT, HIGH); // Reads pins
-  distanceRight = (durationRight / 2) * 0.0343; // 343 m/s per second as speed of sound
+  durationRight = pulseIn(ECHO_PIN_RIGHT, HIGH); // Measure the duration of the pulse
+  distanceRight = (durationRight / 2) * 0.0343; // Convert duration to distance in centimeters
 }
 
+// Function to control behavior based on right distance
 void distanceSensorRight() {
-  int leftSpeed = 230;
-  int rightSpeed = 230;
-
-  // Limit the motor speeds to the valid range (0-255)
-  leftSpeed = constrain(leftSpeed, 0, 255);
-  rightSpeed = constrain(rightSpeed, 0, 255);
-
-  distanceReaderRight();
+  distanceReaderRight(); // Read distance from right ultrasonic sensor
   
   static unsigned long timer;
-  int interval = 50;
+  int interval = 50; // Read distance every 50 milliseconds
   if (millis() > timer) {
 
-  int difference = distanceRight - minRightDistance;
+    int difference = distanceRight - MIN_RIGHT_DISTANCE;
 
-  if (distanceRight >= minRightDistance && difference <= 10) {
-    setMotors(leftSpeed, 0, rightSpeed - 100, 0);
-  } 
-  else if (difference >= 8)
-  {
-    setMotors(leftSpeed, 0, rightSpeed, 0);
-    delay(80);
-    setMotors(leftSpeed -50, 0, 0, rightSpeed);
-    delay(40);
-  }
-  else if (distanceRight <= maxRightDistance && difference <= 10) 
-  {
-    setMotors(leftSpeed - 100, 0, rightSpeed, 0);
-  } 
-  else 
-  {
-    // Drive the robot with the adjusted motor speeds
-    setMotors(leftSpeed, 0, rightSpeed, 0);
-  }
-  timer = millis() + interval;
+    if (distanceRight >= MIN_RIGHT_DISTANCE && difference <= 10) { // If distance is within safe range
+      driveRight(230, 0, 130, 0); // Adjust direction to the right
+    } 
+    else if (difference >= 8) // If distance is too close to the right
+    {
+      driveForward(230, 0, 230, 0); // Move forward
+      delay(80); // Delay to allow forward movement
+      driveRight(180, 0, 0, 230); // Turn right
+      delay(40); // Delay to allow turn to complete
+    }
+    else if (distanceRight <= MAX_RIGHT_DISTANCE && difference <= 10) // If distance is too far from the right
+    {
+      driveLeft(130, 0, 230, 0); // Adjust direction to the left
+    } 
+    else // If distance is within acceptable range
+    {
+      driveForward(230, 0, 230, 0); // Move forward
+    }
+    timer = millis() + interval; // Set next reading time
   }
 }
 
 //-----------------------------------[Line sensor]------------------------
 
+// Function to read inputs from line sensors and control robot movement accordingly
 void readLineSensor() {
   static unsigned long timer;
   static unsigned long allBlackTimerStart = 0;
   static bool gripperClosed = false;
 
   if (millis() > timer) {
-    // Read sensor values
-    for (int i = 0; i < numberOfSensors; i++) {
-      sensorValues[i] = analogRead(sensorPins[i]);
+    for (int i = 0; i < NUMBER_OF_SENSORS; i++) {
+      sensorValues[i] = analogRead(sensorPins[i]); // Read analog values from line sensors
     }
 
-    // Check if all sensors are black
     bool allBlack = true;
-    for (int i = 0; i < numberOfSensors; i++) {
-      if (sensorValues[i] < BLACK) {
+    for (int i = 0; i < NUMBER_OF_SENSORS; i++) {
+      if (sensorValues[i] < BLACK_THRESHOLD) {
         allBlack = false;
         break;
       }
     }
 
-    if (allBlack) {
-      // Increment the timer if all sensors are black
-      allBlackTimerStart += SENSOR_INTERVAL;
+    if (allBlack) { // If all sensors detect black
+      allBlackTimerStart += SENSOR_INTERVAL; // Increment timer
     }
 
-    if (allBlackTimerStart >= 1000) {
-      // If all sensors have been black for more than 5 seconds and gripper is not already closed, close the gripper
-      gripper(GRIPPER_CLOSED);
+    if (allBlackTimerStart >= 1000) { // If all sensors detect black for 1 second
+      gripper(GRIPPER_CLOSED); // Close gripper
       gripperClosed = true;
     }
 
-    if (sensorValues[2] >= BLACK || sensorValues[3] >= BLACK || sensorValues[4] >= BLACK || sensorValues[1] >= BLACK) {
-      driveForward(200); //We start with slowest and then modify the speed to a decent speed
-      Serial.print("forward");
-      Serial.print(" ");
-    } else if (sensorValues[5] >= BLACK) {
-      driveRight(255);
-      Serial.print("right222");
-      Serial.print(" ");
-    } else if (sensorValues[0] >= BLACK) {
-      driveLeft(255);
-      Serial.print("left222");
-      Serial.print(" ");
+    if (sensorValues[2] >= BLACK_THRESHOLD || sensorValues[3] >= BLACK_THRESHOLD || sensorValues[4] >= BLACK_THRESHOLD || sensorValues[1] >= BLACK_THRESHOLD) {
+      driveForward(200, 0, 200, 0); // Drive forward if any of the middle sensors detect black
+    } else if (sensorValues[5] >= BLACK_THRESHOLD) {
+      driveRight(255, 0, 0, 0); // Turn right if rightmost sensor detects black
+    } else if (sensorValues[0] >= BLACK_THRESHOLD) {
+      driveLeft(0, 0, 255, 0); // Turn left if leftmost sensor detects black
     }
-    timer = millis() + SENSOR_INTERVAL;
+    timer = millis() + SENSOR_INTERVAL; // Set next reading time
   }
 }
 
-boolean isOnLightColor()
-{
+// Function to check if the robot is on a light-colored surface
+boolean isOnLightColor() {
   int averageColor = 0;
-  for (int sensorPin : sensorValues)
-  {
-    averageColor += analogRead(sensorPin);
+  for (int sensorPin : sensorValues) {
+    averageColor += analogRead(sensorPin); // Read analog values from line sensors
   }
   
-  int lightColor = (averageColor / 6) <= BLACK;
+  int lightColor = (averageColor / 6) <= BLACK_THRESHOLD; // Calculate average color and compare to black threshold
 
-  return lightColor;
+  return lightColor; // Return true if on light color, false otherwise
 }
 
-boolean isAnythingBlack()
-{
-  for (int pin : sensorValues)
-  {
-    if(analogRead(pin) > 800)
-    {
-      return true;  
+// Function to check if any sensor detects black
+boolean isAnythingBlack() {
+  for (int pin : sensorValues) {
+    if(analogRead(pin) > 800) { // Check if sensor value exceeds threshold for black
+      return true; // Return true if any sensor detects black
     }
   }  
-  return false;
+  return false; // Return false if no sensor detects black
 }
 
 //-----------------------------------[Pulse sensor]------------------------
 
 void incrementPulseLeft()
+// Increment pulse count for left wheel
 {
-  pulsesLeft++;
+  PULSES_LEFT++;
 }
 
-boolean isStuck()
+void incrementPulseRight()
+// Increment pulse count for right wheel
 {
-  static long previousPulses = pulsesLeft;
+  PULSES_RIGHT++;
+}
+
+// Function to check if the robot is stuck
+boolean isStuck() {
+  static long previousPulsesL = PULSES_LEFT;
+  static long previousPulsesR = PULSES_RIGHT;
   static long timer = millis();
-  static int amountOfFailedPulses;
+  static int amountOfFailedPulsesL;
+  static int amountOfFailedPulsesR;
 
-  if(timer <= millis())
-  {
-    if ((previousPulses + 3) < pulsesLeft)
-    {
-      amountOfFailedPulses = 0;
-      previousPulses = pulsesLeft;
+  if(timer <= millis()) {
+    if ((previousPulsesL + 3) < PULSES_LEFT) { // If left wheel pulses increase
+      amountOfFailedPulsesL = 0; // Reset failed pulse count
+      previousPulsesL = PULSES_LEFT; // Update previous pulse count
     }
-    else
-    {
-      amountOfFailedPulses++;
+    else {
+      amountOfFailedPulsesL++; // Increment failed pulse count
     }
-    if (amountOfFailedPulses >= 20)
-    {
-      return true;
+    if ((previousPulsesR + 3) < PULSES_RIGHT) { // If right wheel pulses increase
+      amountOfFailedPulsesR = 0; // Reset failed pulse count
+      previousPulsesR = PULSES_RIGHT; // Update previous pulse count
+    }
+    else {
+      amountOfFailedPulsesR++; // Increment failed pulse count
+    }
+    if (amountOfFailedPulsesL >= 20) { // If left wheel has been stuck for too long
+      return true; // Return true to indicate the robot is stuck
     } 
-    timer = millis() + 200;
+    if (amountOfFailedPulsesR >= 20) { // If right wheel has been stuck for too long
+      return true; // Return true to indicate the robot is stuck
+    } 
+    timer = millis() + 200; // Set next check time
   }
-  return false;
+  return false; // Return false to indicate the robot is not stuck
 }
 
+// Function to play the Wii theme melody
 void playWiiTheme() {
-  // Loop through each note and play it with its duration
   for (int i = 0; i < sizeof(notes) / sizeof(notes[0]); i++) {
     if (notes[i] == 0) {
-      // Pause if the note is 0
-      delay(durations[i]);
+      delay(durations[i]); // Delay if rest note
     } else {
-      // Play the note with its duration
-      tone(BUZZER, notes[i], durations[i]);
-      delay(durations[i]);
+      tone(BUZZER, notes[i], durations[i]); // Play note
+      delay(durations[i]); // Delay note duration
     }
-    // Silence the buzzer after each note to prevent overlapping sounds
-    noTone(BUZZER);
+    noTone(BUZZER); // Stop playing note
   }
 }
