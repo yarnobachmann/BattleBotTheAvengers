@@ -130,18 +130,18 @@ void colorsr() {
     if (alternate) {
       pixels.begin();
       pixels.setPixelColor(0, pixels.Color(75, 255, 0));
-      pixels.setPixelColor(1, pixels.Color(0, 255, 0));
+      pixels.setPixelColor(1, pixels.Color(75, 255, 0));
       pixels.setPixelColor(2, pixels.Color(75, 255, 0));
-      pixels.setPixelColor(3, pixels.Color(0, 255, 0));
+      pixels.setPixelColor(3, pixels.Color(75, 255, 0));
       pixels.show();
       alternate = false;
     } else {
       pixels.begin();
       pixels.begin();
       pixels.setPixelColor(0, pixels.Color(0, 255, 0));
-      pixels.setPixelColor(1, pixels.Color(75, 255, 0));
+      pixels.setPixelColor(1, pixels.Color(0, 255, 0));
       pixels.setPixelColor(2, pixels.Color(0, 255, 0));
-      pixels.setPixelColor(3, pixels.Color(75, 255, 0));
+      pixels.setPixelColor(3, pixels.Color(0, 255, 0));
       pixels.show();
       alternate = true;
     }
@@ -437,7 +437,7 @@ void avoidObstacle()
 
     colorsr();
 
-    delay(850);
+    delay(900);
 }
 
 int average(int numbers[], int size)
