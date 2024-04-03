@@ -187,7 +187,7 @@ void lineFollower() {
 
   bool distanceUnder20 = false;
   
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < 5; i++)
   {
     distance = getDistance();
     if (distance < 20) {
