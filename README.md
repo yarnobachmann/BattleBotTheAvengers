@@ -20,7 +20,7 @@ The robot has the following functions:
 </details>
 
 ## Linemaze
-<details
+<details>
 <summary>
     Piet
 </summary>
