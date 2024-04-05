@@ -13,10 +13,6 @@
 // Motor control functions
 void setPixelColor(int pixel, uint8_t red, uint8_t green, uint8_t blue);
 void setMotors(int LFWD, int LBACK, int RFWD, int RBACK);
-void brakeLight();
-void forwardLight();
-void leftLight();
-void rightLight();
 void driveLeft(int LFWD, int LBACK, int RFWD, int RBACK);
 void driveRight(int LFWD, int LBACK, int RFWD, int RBACK);
 void driveForward(int LFWD, int LBACK, int RFWD, int RBACK);
@@ -24,6 +20,13 @@ void driveBack(int LFWD, int LBACK, int RFWD, int RBACK);
 void driveStop();
 
 // Sensor and input/output functions
+void startLightOne();
+void startLightTwo();
+void startLightThree();
+void brakeLight();
+void forwardLight();
+void leftLight();
+void rightLight();
 void distanceReader();
 void distanceSensor();
 void distanceReaderRight();
@@ -94,9 +97,9 @@ const float notes[] = {739.99,659.25,783.99,739.99,783.99,783.99,739.99,783.99,6
 };
 
 // Timing and control variables
-#define STOP_DISTANCE 11 // Distance threshold for stopping
-#define MIN_RIGHT_DISTANCE 10 // Minimum distance for right sensor
-#define MAX_RIGHT_DISTANCE 12 // Maximum distance for right sensor
+#define STOP_DISTANCE 10 // Distance threshold for stopping
+#define MIN_RIGHT_DISTANCE 8 // Minimum distance for right sensor
+#define MAX_RIGHT_DISTANCE 10 // Maximum distance for right sensor
 bool HAS_START_ENDED = false; // Flag indicating startup completion
 bool HAS_END_STARTED = false; // Flag indicating startup completion
 #define START_TRIGGER false // Flag indicating startup trigger
@@ -199,6 +202,7 @@ void startup() {
   for (int i = 0; i < 100; i++) {
     delay(10);
     gripper(GRIPPER_OPEN);
+    startLightOne(); // Activate light function
   }
 
   // Move forward until obstacle is detected and stop at a safe distance
@@ -219,7 +223,12 @@ void startup() {
   if (distance > 0) {
     // Proceed with startup sequence
     // Drive forward until a certain number of lines are detected
-    delay(2000); // Delay for stability
+    startLightTwo(); // Activate light function
+    delay(850); // Delay for stability
+    startLightThree(); // Activate light function
+    delay(850); // Delay for stabiliy
+    tone(BUZZER, 600, 300); // Emit a warning tone
+    delay(300);
     driveForward(220, 0, 230, 0); // Move forward at specified speed
     while (linesPassed <= 6) {
       boolean detectedColor = isOnLightColor(); // Check if line is detected
@@ -419,6 +428,32 @@ void rightLight() {
   setPixelColor(3, 0, 255, 0); // green for the 4th Neopixel
 }
 
+void startLightOne() {
+  // Set color for each Neopixel individually
+  setPixelColor(0, 255, 0, 0); // Red for the first Neopixel
+  setPixelColor(1, 255, 0, 0); // Red for the second Neopixel
+  setPixelColor(2, 255, 0, 0); // Red off other Neopixels
+  setPixelColor(3, 255, 0, 0); // Red off other Neopixels
+}
+
+void startLightTwo() {
+  tone(BUZZER, 5000, 100); // Emit a warning tone
+  // Set color for each Neopixel individually
+  setPixelColor(0, 255, 80, 0); // Orange for the first Neopixel
+  setPixelColor(1, 255, 80, 0); // Orange for the second Neopixel
+  setPixelColor(2, 255, 80, 0); // Orange for the third Neopixel
+  setPixelColor(3, 255, 80, 0); // Orange for the fourth Neopixel
+}
+
+void startLightThree() {
+  tone(BUZZER, 5000, 100); // Emit a warning tone
+  // Set color for each Neopixel individually
+  setPixelColor(0, 0, 255, 0); // Green for the first Neopixel
+  setPixelColor(1, 0, 255, 0); // Green for the second Neopixel
+  setPixelColor(2, 0, 255, 0); // Green for the third Neopixel
+  setPixelColor(3, 0, 255, 0); // Green for the fourth Neopixel
+}
+
 /*╭──────────── ⋆˖⁺‧₊☽◯☾₊‧⁺˖⋆ ────────────╮
                  Echo sensor
   ╰──────────── ⋆˖⁺‧₊☽◯☾₊‧⁺˖⋆ ────────────╯*/
@@ -438,16 +473,16 @@ void distanceReader() {
 // Function to control behavior based on front distance
 void distanceSensor() {
   static unsigned long timer;
-  int interval = 400; // Read distance every 400 milliseconds
+  int interval = 500; // Read distance every 500 milliseconds
   if (millis() > timer) {
     distanceReader(); // Read distance from ultrasonic sensor
     if (distance <= STOP_DISTANCE) { // If distance is less than stop threshold
       CONTINUE_RIGHT_SENSOR = false; // Stop reading from right sensor
       tone(BUZZER, 1000, 100); // Emit a warning tone
       driveBack(0, 255, 0, 255); // Move backward to get unstuck
-      delay(150); // Delay to ensure movement
-      driveLeft(0, 190, 210, 0); // Turn left to avoid obstacle
-      delay(400); // Delay to allow turn to complete
+      delay(100); // Delay to ensure movement
+      driveLeft(0, 210, 230, 0); // Turn left to avoid obstacle
+      delay(500); // Delay to allow turn to complete
       CONTINUE_RIGHT_SENSOR = true; // Resume reading from right sensor
     }
     timer = millis() + interval; // Set next reading time
@@ -471,7 +506,7 @@ void distanceSensorRight() {
   distanceReaderRight(); // Read distance from right ultrasonic sensor
 
   static unsigned long timer;
-  int interval = 10; // Read distance every 50 milliseconds
+  int interval = 50; // Read distance every 50 milliseconds
   if (millis() > timer) {
 
     int difference = distanceRight - MIN_RIGHT_DISTANCE;
@@ -489,7 +524,7 @@ void distanceSensorRight() {
       driveLeft(130, 0, 230, 0); // Adjust direction to the left
     } else // If distance is within acceptable range
     {
-      driveForward(250, 0, 250, 0); // Move forward
+      driveForward(230, 0, 230, 0); // Move forward
     }
     timer = millis() + interval; // Set next reading time
   }
