@@ -29,7 +29,7 @@ int LOWVALUEUNIQUE = 550;
 int HIGHVALUE = 1005; // Value for black
 
 const int GRIPPER_OPEN = 1800; // Pulse length to open gripper
-const int GRIPPER_CLOSED = 950; // Pulse length to close gripper
+const int GRIPPER_CLOSED = 900; // Pulse length to close gripper
 bool gripperOpen = true; // Set boolean for gripper open to true
 
 // Variables for the last used values of the motors
@@ -65,7 +65,7 @@ const long interval = 250;
 unsigned long distanceMillis = 0;
 
 
-
+// Set up for the sensors, motors and gripper
 void setup() {
   Serial.begin(9600);
 
@@ -87,6 +87,8 @@ void setup() {
   start();
 }
 
+
+// Neopixel colors for when the robot is driving
 void colors() {
   unsigned long currentMillis = millis();
 
@@ -117,7 +119,7 @@ void colors() {
 }
 
 
-
+// Neopixel colors for when the robot is evading an obstacle
 void colorsr() {
   unsigned long currentMillis = millis();
 
@@ -148,6 +150,7 @@ void colorsr() {
   }
 }
 
+// Neopixel colors for when the robot is not moving
 void color0() {
   pixels.begin();
   pixels.setPixelColor(0, pixels.Color(75, 255, 0));
@@ -157,6 +160,7 @@ void color0() {
   pixels.show();
 }
 
+// // Neopixel colors for when the robot is moving right
 void colorRight() {
   pixels.begin();
   pixels.setPixelColor(0, pixels.Color(0, 255, 0));
@@ -166,6 +170,7 @@ void colorRight() {
   pixels.show();
 }
 
+// Neopixel colors for when the robot is moving left
 void colorLeft() {
   pixels.begin();
   pixels.setPixelColor(0, pixels.Color(75, 255, 0));
@@ -175,6 +180,7 @@ void colorLeft() {
   pixels.show();
 }
 
+// Main code for the linefollower
 void lineFollower() {
   lineCheck1 = analogRead(LINE_SENSOR[0]);
   lineCheck2 = analogRead(LINE_SENSOR[1]);
@@ -185,6 +191,8 @@ void lineFollower() {
   lineCheck7 = analogRead(LINE_SENSOR[6]);
   lineCheck8 = analogRead(LINE_SENSOR[7]);
 
+
+  // Start function
   bool distanceUnder20 = false;
   
   for (int i = 0; i < 5; i++)
@@ -200,7 +208,7 @@ void lineFollower() {
       break;
     }
   }
-
+  // If distance is under 20 evade obstacle
   if (distanceUnder20)
   {
       avoidObstacle();
@@ -210,7 +218,7 @@ void lineFollower() {
       lastValueB2 = 255;
   }
 
-  
+  // Ending procedure
   else if((lineCheck1 > LOWVALUE) && (lineCheck1 < HIGHVALUE) && (lineCheck2 > LOWVALUE) && (lineCheck2 < HIGHVALUE) && (lineCheck3 > LOWVALUE) && (lineCheck3 < HIGHVALUE) && (lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE) &&
   (lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE) && (lineCheck6 > LOWVALUE) && (lineCheck6 < HIGHVALUE) && (lineCheck7 > LOWVALUE) && (lineCheck7 < HIGHVALUE) && (lineCheck8 > LOWVALUE) && (lineCheck8 < HIGHVALUE)){
     if (startTime == 0) {
@@ -242,54 +250,65 @@ void lineFollower() {
       } 
     } 
   }
+
+  // Making a slight turn left when the line is curving
   else if ((lineCheck1 > LOWVALUE) && (lineCheck1 < HIGHVALUE) && (lineCheck2 > LOWVALUE) && (lineCheck2 < HIGHVALUE) && (lineCheck3 > LOWVALUE) && (lineCheck3 < HIGHVALUE) && (lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE) && (lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 225);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_2, 225);
     startTime = 0;
     delay(100);
-    lastValueA1 = 190;
+    // Storing the last values of the motor for when the robot loses the line
+    lastValueA1 = 190; 
     lastValueA2 = 0;
     lastValueB1 = 0;
     lastValueB2 = 225;
     colors();
   }
+
+  // Making a slight turn right when the line is curving
   else if ((lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE) && (lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE) && (lineCheck6 > LOWVALUE) && (lineCheck6 < HIGHVALUE) && (lineCheck7 > LOWVALUE) && (lineCheck7 < HIGHVALUE) && (lineCheck8 > LOWVALUE) && (lineCheck8 < HIGHVALUE)){
     analogWrite(MOTOR_B_1, 0);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_2, 255);
     startTime = 0;
     delay(100);
+    // Storing the last values of the motor for when the robot loses the line
     lastValueA1 = 0;
     lastValueA2 = 255;
     lastValueB1 = 220;
     lastValueB2 = 0;
     colors();
   }
+  // Making a slight turn left when the line is curving
   else if ((lineCheck1 > LOWVALUE) && (lineCheck1 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 0);
     analogWrite(MOTOR_B_2, 220);
     analogWrite(MOTOR_A_1, 255);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
+    // Storing the last values of the motor for when the robot loses the line
     lastValueA1 = 225;
     lastValueA2 = 0;
     lastValueB1 = 0;
     lastValueB2 = 190;
     colorLeft();
   }
+  // Making a sharp turn to the left when the line is curving
   else if ((lineCheck2 > LOWVALUE) && (lineCheck2 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 80);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
+    // Storing the last values of the motor for when the robot loses the line
     lastValueA1 = 190;
     lastValueA2 = 0;
     lastValueB1 = 0;
     lastValueB2 = 225;
     colorLeft();
   }
+   // Making a medium turn to the left when the line is curving
   else if ((lineCheck3 > LOWVALUE) && (lineCheck3 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 160);
     analogWrite(MOTOR_B_2, 255);
@@ -302,66 +321,77 @@ void lineFollower() {
     lastValueB2 = 225;
     colors();
   }
+    // Drive forward when line is straight
   else if ((lineCheck4 > LOWVALUE) && (lineCheck4 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
+    // Storing the last values of the motor for when the robot loses the line
     lastValueA1 = 0;
     lastValueA2 = 255;
     lastValueB1 = 0;
     lastValueB2 = 220;
     colors();
   }
+  // Drive forward when line is straight
   else if ((lineCheck5 > LOWVALUE) && (lineCheck5 < HIGHVALUE)){
     analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_B_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
+    // Storing the last values of the motor for when the robot loses the line
     lastValueA1 = 190;
     lastValueA2 = 0;
     lastValueB1 = 0;
     lastValueB2 = 225;
     colors();
   }
-  else if((lineCheck6 > LOWVALUEUNIQUE) && (lineCheck6 < HIGHVALUE)){
+  // Making a medium turn to the right when the line is curving
+  else if((lineCheck6 > LOWVALUE) && (lineCheck6 < HIGHVALUE)){
     analogWrite(MOTOR_B_2, 160);
     analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
+    // Storing the last values of the motor for when the robot loses the line
     lastValueA1 = 0;
     lastValueA2 = 225;
     lastValueB1 = 190;
     lastValueB2 = 0;
     colors();
   }
+  // Making a sharp turn to the left when the line is curving
   else if((lineCheck7 > LOWVALUE) && (lineCheck7 < HIGHVALUE)){
     analogWrite(MOTOR_B_2, 80);
     analogWrite(MOTOR_A_2, 255);
     analogWrite(MOTOR_A_1, 0);
     analogWrite(MOTOR_B_1, 0);
     startTime = 0;
+    // Storing the last values of the motor for when the robot loses the line
     lastValueA1 = 0;
     lastValueA2 = 225;
     lastValueB1 = 190;
     lastValueB2 = 0;
     colorRight();
   }
+  // Making a slight turn to the left when the line is curving
   else if((lineCheck8 > LOWVALUE) && (lineCheck8 < HIGHVALUE)){
     analogWrite(MOTOR_B_2, 0);
     analogWrite(MOTOR_A_2, 220);
     analogWrite(MOTOR_B_1, 255);
     analogWrite(MOTOR_A_1, 0);
     startTime = 0;
+    // Storing the last values of the motor for when the robot loses the line
     lastValueA1 = 0;
     lastValueA2 = 225;
     lastValueB1 = 190;
     lastValueB2 = 0;
     colorRight();
   }
+  // If the robot lost the line, do the last used values
   else{
     analogWrite(MOTOR_A_1, lastValueA1);
     analogWrite(MOTOR_A_2, lastValueA2);
@@ -371,6 +401,7 @@ void lineFollower() {
   } 
 }
 
+// Gripper 
 void servo(int pulse) {
   // Control the servo position using PWM
   digitalWrite(gripperPin, HIGH);
@@ -388,6 +419,7 @@ void gripperToggle(bool open) {
   }
 }
 
+// Get the distance between robot and obstacle
 float getDistance()
 {
   if (millis() >= distanceMillis) {
@@ -401,6 +433,7 @@ float getDistance()
   }
 }
 
+// Avoid the obstacle function
 void avoidObstacle()
 {
     analogWrite(MOTOR_B_2, 0);
@@ -440,6 +473,7 @@ void avoidObstacle()
     delay(900);
 }
 
+// Calculate the average value from the line
 int average(int numbers[], int size)
 {
   double sum = 0;
@@ -450,11 +484,11 @@ int average(int numbers[], int size)
   return (int)sum / (double)size;
 }
 
-
 void loop() {  
   lineFollower();
 }
 
+// Start procedure with calibration
 void start()
 {
   color0();
@@ -530,7 +564,7 @@ void start()
   analogWrite(MOTOR_B_1, 0);
 }
 
-
+// Calculate the average value of the lines
 int getAverageLightValue()
 {
   int sum = 0;
