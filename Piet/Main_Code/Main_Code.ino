@@ -19,7 +19,6 @@
 
 Adafruit_NeoPixel pixels(NUMPIXELS, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
-int distance;
 const int LIGHT_SENSOR[8] = {A0, A1, A2, A3, A4, A5, A6, A7};
 int LIGHT_VALUE  =   850;  // Light value at the beginning
 
@@ -27,6 +26,11 @@ long currentMillis;
 bool currentLightState = false;
 unsigned long previousMillis = 0;
 const long interval = 100; // Interval in milliseconden
+bool end = false;
+
+unsigned long endingTimer = 500;
+unsigned long distanceMillis = 0;
+float duration = 0;
 
 void setup() {
   // put your setup code here, to run once:
@@ -52,36 +56,109 @@ void setup() {
   
 
 void loop() {
-  // put your main code here, to run repeatedly:
   forwardLights();
   followTheLine();
-  
+//  // put your main code here, to run repeatedly:
+// while (!allBlack())
+//    {
+//      forwardLights();
+//      followTheLine();
+//    }
+//    if (allBlack()){
+//    theEnd(); 
+//    
+//    }
+//
+//  while (end)
+//  {
+//    
+//  }
 }
-
+    
 void followTheLine()
 {
-  if (analogRead(LIGHT_SENSOR[7]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[6]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[7]) > LIGHT_VALUE && analogRead(LIGHT_SENSOR[0]) < LIGHT_VALUE)
+  if (analogRead(LIGHT_SENSOR[7]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[6]) > LIGHT_VALUE)
   {
-    turnLeft(245); 
+    specialTurnLeft();
   }
-  else if (analogRead(LIGHT_SENSOR[3]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[4]) > LIGHT_VALUE)
+//  
+//  else if (analogRead(LIGHT_SENSOR[7]) > LIGHT_VALUE && analogRead(LIGHT_SENSOR[0]) < LIGHT_VALUE)
+//  {
+//    turnLeft(245); 
+//  }
+  else if (analogRead(LIGHT_SENSOR[2]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[3]) > LIGHT_VALUE)
   {
-    driveForward(210);
+    driveForward(220);
   }
-  else if (analogRead(LIGHT_SENSOR[5]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[6]) > LIGHT_VALUE)
+  else if (analogRead(LIGHT_SENSOR[5]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[4]) > LIGHT_VALUE)
   {
-    turnLeft(200);
+    turnLeft(210);
   }
-  else if (analogRead(LIGHT_SENSOR[0]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[1]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[0]) > LIGHT_VALUE && analogRead(LIGHT_SENSOR[7]) < LIGHT_VALUE)
+  else if (analogRead(LIGHT_SENSOR[0]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[1]) > LIGHT_VALUE)
   {
-    turnRight(200);
+     turnRight(210);
   }
-  else if (analogRead(LIGHT_SENSOR[8]) < LIGHT_VALUE)
+  else if (analogRead(LIGHT_SENSOR[0]) < LIGHT_VALUE && analogRead(LIGHT_SENSOR[3]) < LIGHT_VALUE && analogRead(LIGHT_SENSOR[5]) < LIGHT_VALUE && analogRead(LIGHT_SENSOR[7]) < LIGHT_VALUE)
   {
     turnRight(245);
   }
+  else 
+  {
+    driveForward(220);
+  }
 }
 
+bool allBlack()
+{
+  int blackDetected = 0;
+  for (int i = 0; i < 8; i++)
+  {
+    if (analogRead(LIGHT_SENSOR[i]) > LIGHT_VALUE)
+    {
+      blackDetected++;
+    }
+  }
+
+  if (blackDetected >= 6)
+  {
+    if (endingTimer == 0)
+    {
+      endingTimer = millis();
+    }
+    else
+    {
+      if (millis() - endingTimer >= 300)
+      {
+        Serial.println("true");
+        return true;
+      }
+    }
+  }
+  else
+  {
+    endingTimer = 0;
+  }
+
+  Serial.println("false");
+  return false;
+ }
+
+void theEnd()
+{ 
+  motorStop();
+  driveBackwards(245);
+  delay(300);
+  motorStop();
+  for (int i = 0; i < 8; i++)
+  {
+    servo(GRIPPER_OPEN);
+    delay(100);
+  }
+  delay(10);
+  driveBackwards(245);
+  delay(3000);
+  motorStop();
+}
 
 void gripperToggle() 
 {
@@ -126,32 +203,65 @@ void driveForward(int speed)
 
 void turnLeft(int speed)
 {
-  analogWrite(MOTOR_LEFT_BACKWARD, 255);
-  analogWrite(MOTOR_LEFT_FORWARD, 0);
-  analogWrite(MOTOR_RIGHT_BACKWARD, 0);
-  analogWrite(MOTOR_RIGHT_FORWARD, 255);
-
-  delay(10);
-  
+//  analogWrite(MOTOR_LEFT_BACKWARD, 255);
+//  analogWrite(MOTOR_LEFT_FORWARD, 0);
+//  analogWrite(MOTOR_RIGHT_BACKWARD, 0);
+//  analogWrite(MOTOR_RIGHT_FORWARD, 255);
+//
+//  delay(10);
+//  
   analogWrite(MOTOR_LEFT_BACKWARD, speed - MOTOR_AFWIJKING);
   analogWrite(MOTOR_LEFT_FORWARD, 0);
   analogWrite(MOTOR_RIGHT_BACKWARD, 0);
   analogWrite(MOTOR_RIGHT_FORWARD, speed);
 }
 
+void specialTurnLeft()
+{
+  driveForward(210);
+  delay(300);
+  if (analogRead(LIGHT_SENSOR[5]) > LIGHT_VALUE && analogRead(LIGHT_SENSOR[2]) > LIGHT_VALUE )
+  {
+    theEnd();
+    while(true){
+      
+    }
+  }
+  turnLeft(215);
+  delay(300);
+  while (true)
+  {
+    delay(1);
+    if (analogRead(LIGHT_SENSOR[2]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[3]) > LIGHT_VALUE)
+    {
+      break;
+    }
+  }
+  motorStop();
+}
+
 void turnRight(int speed)
 {
-  analogWrite(MOTOR_LEFT_BACKWARD, 0);
-  analogWrite(MOTOR_LEFT_FORWARD, 255);
-  analogWrite(MOTOR_RIGHT_BACKWARD, 255);
-  analogWrite(MOTOR_RIGHT_FORWARD, 0);
-
-  delay(10);
+//  analogWrite(MOTOR_LEFT_BACKWARD, 0);
+//  analogWrite(MOTOR_LEFT_FORWARD, 255);
+//  analogWrite(MOTOR_RIGHT_BACKWARD, 255);
+//  analogWrite(MOTOR_RIGHT_FORWARD, 0);
+//
+//  delay(10);
 
   analogWrite(MOTOR_LEFT_BACKWARD, 0);
   analogWrite(MOTOR_LEFT_FORWARD, speed - MOTOR_AFWIJKING);
   analogWrite(MOTOR_RIGHT_BACKWARD, speed);
   analogWrite(MOTOR_RIGHT_FORWARD, 0);
+}
+
+
+void driveBackwards(int speed)
+{
+  analogWrite(MOTOR_LEFT_BACKWARD, speed - MOTOR_AFWIJKING);
+  analogWrite(MOTOR_LEFT_FORWARD, 0);
+  analogWrite(MOTOR_RIGHT_BACKWARD, speed);
+  analogWrite(MOTOR_RIGHT_FORWARD, 0); 
 }
 
 void motorStop()
@@ -173,16 +283,8 @@ void start()
   
   for (int i = 0; i < 3; i++)
   {
-    do
-    {
-      digitalWrite(TRIG_PIN, HIGH);
-      delayMicroseconds(10);
-      digitalWrite(TRIG_PIN, LOW);
     
-      long duration = pulseIn(ECHO_PIN, HIGH);
-      distance = duration * 0.034 / 2; // Bereken de afstand in centimeters
-    }  
-      while(distance > 24);
+      while(getDistance() > 24);
   }
     waitLights();
     startLights();
@@ -368,7 +470,6 @@ void forwardLights()
       pixels.setPixelColor(3, pixels.Color(255, 255, 255));
       pixels.show();
       currentLightState = !currentLightState;
-
     }
   }
 }
@@ -389,4 +490,18 @@ void stopLights()
   pixels.setPixelColor(2, pixels.Color(0, 255, 0));
   pixels.setPixelColor(3, pixels.Color(0, 255, 0));
   pixels.show();
+}
+
+float getDistance()
+{
+  if (millis() >= distanceMillis) 
+  {
+    distanceMillis = millis() + 200;
+    digitalWrite(TRIG_PIN, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIG_PIN, LOW);
+    duration = pulseIn(ECHO_PIN, HIGH);
+    //Serial.println(0.017 * duration);
+    return 0.017 * duration;
+  }
 }
