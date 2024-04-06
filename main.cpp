@@ -67,10 +67,6 @@ void playWiiTheme();
 #define GRIPPER_OPEN 1600 // Pulse width to open the gripper
 #define GRIPPER_CLOSED 930 // Pulse width to close the gripper
 
-#define SERVO_MIN_PULSE 250 // Minimum pulse width for servo control
-#define SERVO_MID_PULSE 1400 // Middle pulse width for servo control
-#define SERVO_MAX_PULSE 2400 // Maximum pulse width for servo control
-
 #define TRIGGER_PIN 8 // Pin for ultrasonic sensor trigger
 #define ECHO_PIN 4 // Pin for ultrasonic sensor echo
 #define TRIGGER_PIN_RIGHT 5 // Pin for right ultrasonic sensor trigger
