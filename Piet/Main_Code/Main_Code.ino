@@ -9,7 +9,7 @@
 #define   MOTOR_LEFT_FORWARD    10    // Motor Pin
 #define   MOTOR_RIGHT_BACKWARD  6     // Motor Pin
 #define   MOTOR_RIGHT_FORWARD   5     // Motor Pin 
-#define   MOTOR_AFWIJKING       4     // Afwijking van de motor (moet nog in het Engels) 
+#define   MOTOR_DEVIATION       4     // Deviation of the motor
 
 #include <Adafruit_NeoPixel.h>
 
@@ -28,7 +28,6 @@ unsigned long previousMillis = 0;
 const long interval = 100; // Interval in milliseconden
 bool end = false;
 
-unsigned long endingTimer = 500;
 unsigned long distanceMillis = 0;
 float duration = 0;
 
@@ -55,24 +54,11 @@ void setup() {
 }
   
 
-void loop() {
+void loop() 
+{
+// put your main code here, to run repeatedly:
   forwardLights();
   followTheLine();
-//  // put your main code here, to run repeatedly:
-// while (!allBlack())
-//    {
-//      forwardLights();
-//      followTheLine();
-//    }
-//    if (allBlack()){
-//    theEnd(); 
-//    
-//    }
-//
-//  while (end)
-//  {
-//    
-//  }
 }
     
 void followTheLine()
@@ -81,14 +67,9 @@ void followTheLine()
   {
     specialTurnLeft();
   }
-//  
-//  else if (analogRead(LIGHT_SENSOR[7]) > LIGHT_VALUE && analogRead(LIGHT_SENSOR[0]) < LIGHT_VALUE)
-//  {
-//    turnLeft(245); 
-//  }
   else if (analogRead(LIGHT_SENSOR[2]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[3]) > LIGHT_VALUE)
   {
-    driveForward(220);
+    driveForward(210);
   }
   else if (analogRead(LIGHT_SENSOR[5]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[4]) > LIGHT_VALUE)
   {
@@ -100,48 +81,13 @@ void followTheLine()
   }
   else if (analogRead(LIGHT_SENSOR[0]) < LIGHT_VALUE && analogRead(LIGHT_SENSOR[3]) < LIGHT_VALUE && analogRead(LIGHT_SENSOR[5]) < LIGHT_VALUE && analogRead(LIGHT_SENSOR[7]) < LIGHT_VALUE)
   {
-    turnRight(245);
+    specialTurnRight();
   }
   else 
   {
-    driveForward(220);
+    driveForward(210);
   }
 }
-
-bool allBlack()
-{
-  int blackDetected = 0;
-  for (int i = 0; i < 8; i++)
-  {
-    if (analogRead(LIGHT_SENSOR[i]) > LIGHT_VALUE)
-    {
-      blackDetected++;
-    }
-  }
-
-  if (blackDetected >= 6)
-  {
-    if (endingTimer == 0)
-    {
-      endingTimer = millis();
-    }
-    else
-    {
-      if (millis() - endingTimer >= 300)
-      {
-        Serial.println("true");
-        return true;
-      }
-    }
-  }
-  else
-  {
-    endingTimer = 0;
-  }
-
-  Serial.println("false");
-  return false;
- }
 
 void theEnd()
 { 
@@ -158,22 +104,6 @@ void theEnd()
   driveBackwards(245);
   delay(3000);
   motorStop();
-}
-
-void gripperToggle() 
-{
-  static unsigned long timer;
-  static bool state;
-  if (millis() > timer) {
-    if (state == true) {
-      servo(GRIPPER_OPEN);
-      state = false;
-    } else {
-      servo(GRIPPER_CLOSED);
-      state = true;
-    }
-    timer = millis() + GRIPPER_TOGGLE;
-  }
 }
 
 void servo(int pulse) 
@@ -196,21 +126,14 @@ void servo(int pulse)
 void driveForward(int speed)
 {
   analogWrite(MOTOR_LEFT_BACKWARD, 0);
-  analogWrite(MOTOR_LEFT_FORWARD, speed - MOTOR_AFWIJKING);
+  analogWrite(MOTOR_LEFT_FORWARD, speed - MOTOR_DEVIATION);
   analogWrite(MOTOR_RIGHT_BACKWARD, 0);
   analogWrite(MOTOR_RIGHT_FORWARD, speed);
 }
 
 void turnLeft(int speed)
-{
-//  analogWrite(MOTOR_LEFT_BACKWARD, 255);
-//  analogWrite(MOTOR_LEFT_FORWARD, 0);
-//  analogWrite(MOTOR_RIGHT_BACKWARD, 0);
-//  analogWrite(MOTOR_RIGHT_FORWARD, 255);
-//
-//  delay(10);
-//  
-  analogWrite(MOTOR_LEFT_BACKWARD, speed - MOTOR_AFWIJKING);
+{ 
+  analogWrite(MOTOR_LEFT_BACKWARD, speed);
   analogWrite(MOTOR_LEFT_FORWARD, 0);
   analogWrite(MOTOR_RIGHT_BACKWARD, 0);
   analogWrite(MOTOR_RIGHT_FORWARD, speed);
@@ -223,7 +146,8 @@ void specialTurnLeft()
   if (analogRead(LIGHT_SENSOR[5]) > LIGHT_VALUE && analogRead(LIGHT_SENSOR[2]) > LIGHT_VALUE )
   {
     theEnd();
-    while(true){
+    while(true)
+    {
       
     }
   }
@@ -240,17 +164,34 @@ void specialTurnLeft()
   motorStop();
 }
 
+void specialTurnRight()
+{
+  analogWrite(MOTOR_LEFT_BACKWARD, 0);
+  analogWrite(MOTOR_LEFT_FORWARD, 255);
+  analogWrite(MOTOR_RIGHT_BACKWARD, 255);
+  analogWrite(MOTOR_RIGHT_FORWARD, 0);
+  while (true)
+  {
+    delay(1);
+    if (analogRead(LIGHT_SENSOR[4]) > LIGHT_VALUE || analogRead(LIGHT_SENSOR[5]) > LIGHT_VALUE)
+    {
+      break;
+    }
+  }
+  motorStop();
+}
+
 void turnRight(int speed)
 {
-//  analogWrite(MOTOR_LEFT_BACKWARD, 0);
-//  analogWrite(MOTOR_LEFT_FORWARD, 255);
-//  analogWrite(MOTOR_RIGHT_BACKWARD, 255);
-//  analogWrite(MOTOR_RIGHT_FORWARD, 0);
-//
-//  delay(10);
-
   analogWrite(MOTOR_LEFT_BACKWARD, 0);
-  analogWrite(MOTOR_LEFT_FORWARD, speed - MOTOR_AFWIJKING);
+  analogWrite(MOTOR_LEFT_FORWARD, 255);
+  analogWrite(MOTOR_RIGHT_BACKWARD, 255);
+  analogWrite(MOTOR_RIGHT_FORWARD, 0);
+
+  delay(10);
+  
+  analogWrite(MOTOR_LEFT_BACKWARD, 0);
+  analogWrite(MOTOR_LEFT_FORWARD, speed);
   analogWrite(MOTOR_RIGHT_BACKWARD, speed);
   analogWrite(MOTOR_RIGHT_FORWARD, 0);
 }
@@ -258,7 +199,7 @@ void turnRight(int speed)
 
 void driveBackwards(int speed)
 {
-  analogWrite(MOTOR_LEFT_BACKWARD, speed - MOTOR_AFWIJKING);
+  analogWrite(MOTOR_LEFT_BACKWARD, speed);
   analogWrite(MOTOR_LEFT_FORWARD, 0);
   analogWrite(MOTOR_RIGHT_BACKWARD, speed);
   analogWrite(MOTOR_RIGHT_FORWARD, 0); 
@@ -283,7 +224,6 @@ void start()
   
   for (int i = 0; i < 3; i++)
   {
-    
       while(getDistance() > 24);
   }
     waitLights();
@@ -320,9 +260,8 @@ void start()
         delay(10);
         servo(GRIPPER_CLOSED);
      }
-
       turnLeft(200);
-      delay(500);
+      delay(600);
       while(true)
       {
         if(analogRead(LIGHT_SENSOR[4]) > LIGHT_VALUE)
@@ -332,7 +271,6 @@ void start()
        }
   motorStop();
 }
-
 
 int getAverageLightValue()
 {
@@ -350,8 +288,8 @@ int getAverageLightValue()
 // Pixel 3 is links voor
 // Kleurvolgerde is GRB
 
-
-void lightsOff(){
+void lightsOff()
+{
   pixels.setPixelColor(0, pixels.Color(0, 0, 0));
   pixels.setPixelColor(1, pixels.Color(0, 0, 0));
   pixels.setPixelColor(2, pixels.Color(0, 0, 0));
@@ -359,7 +297,6 @@ void lightsOff(){
   pixels.show();
   delay(200);
 }
-
 
 void waitLights()
 {
@@ -501,7 +438,7 @@ float getDistance()
     delayMicroseconds(10);
     digitalWrite(TRIG_PIN, LOW);
     duration = pulseIn(ECHO_PIN, HIGH);
-    //Serial.println(0.017 * duration);
+    Serial.println(0.017 * duration);
     return 0.017 * duration;
   }
 }
